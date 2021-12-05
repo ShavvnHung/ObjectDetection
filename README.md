@@ -2,7 +2,7 @@
 
 ## Introduction
 
-An object detection task to detect 10 different creatures. There are 690 images in my dataset. and I split train, test, validation dataset with ratio 80%/10%/10%, respectively.
+An object detection task using mmdetection library to detect 10 different creatures. There are 690 images in my dataset. and I split train, test, validation dataset with ratio 80%/10%/10%, respectively.
 
 ![](https://i.imgur.com/VDIh2DD.png)
 
