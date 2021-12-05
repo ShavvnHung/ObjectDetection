@@ -1,0 +1,1890 @@
+2021-12-02 15:20:30,797 - mmdet - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.6.9 (default, Jan 26 2021, 15:33:00) [GCC 8.4.0]
+CUDA available: True
+GPU 0,1: NVIDIA GeForce RTX 3090
+CUDA_HOME: /usr/local/cuda
+NVCC: Build cuda_11.5.r11.5/compiler.30411180_0
+GCC: gcc (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0
+PyTorch: 1.7.0+cu110
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) Math Kernel Library Version 2020.0.0 Product Build 20191122 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v1.6.0 (Git Hash 5ef631a030a6f73131c77892041042805a06064f)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.0
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80
+  - CuDNN 8.0.4
+  - Magma 2.5.2
+  - Build settings: BLAS=MKL, BUILD_TYPE=Release, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DUSE_VULKAN_WRAPPER -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, USE_CUDA=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, 
+
+TorchVision: 0.8.1+cu110
+OpenCV: 4.5.4-dev
+MMCV: 1.3.17
+MMCV Compiler: GCC 7.5
+MMCV CUDA Compiler: 11.5
+MMDetection: 2.18.1+a7a16af
+------------------------------------------------------------
+
+2021-12-02 15:20:31,128 - mmdet - INFO - Distributed training: False
+2021-12-02 15:20:31,433 - mmdet - INFO - Config:
+optimizer = dict(
+    type='SGD',
+    lr=0.01,
+    momentum=0.9,
+    weight_decay=0.0005,
+    nesterov=True,
+    paramwise_cfg=dict(norm_decay_mult=0.0, bias_decay_mult=0.0))
+optimizer_config = dict(grad_clip=None)
+lr_config = dict(
+    policy='YOLOX',
+    warmup='exp',
+    by_epoch=False,
+    warmup_by_epoch=True,
+    warmup_ratio=1,
+    warmup_iters=5,
+    num_last_epochs=15,
+    min_lr_ratio=0.05)
+runner = dict(type='EpochBasedRunner', max_epochs=300)
+checkpoint_config = dict(interval=10)
+log_config = dict(interval=50, hooks=[dict(type='TextLoggerHook')])
+custom_hooks = [
+    dict(type='YOLOXModeSwitchHook', num_last_epochs=15, priority=48),
+    dict(
+        type='SyncRandomSizeHook',
+        ratio_range=(14, 26),
+        img_scale=(640, 640),
+        priority=48),
+    dict(type='SyncNormHook', num_last_epochs=15, interval=10, priority=48),
+    dict(type='ExpMomentumEMAHook', resume_from=None, priority=49)
+]
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+load_from = None
+resume_from = None
+workflow = [('train', 1)]
+model = dict(
+    type='YOLOX',
+    backbone=dict(type='CSPDarknet', deepen_factor=0.33, widen_factor=0.5),
+    neck=dict(
+        type='YOLOXPAFPN',
+        in_channels=[128, 256, 512],
+        out_channels=128,
+        num_csp_blocks=1),
+    bbox_head=dict(
+        type='YOLOXHead', num_classes=80, in_channels=128, feat_channels=128),
+    train_cfg=dict(assigner=dict(type='SimOTAAssigner', center_radius=2.5)),
+    test_cfg=dict(score_thr=0.01, nms=dict(type='nms', iou_threshold=0.65)))
+data_root = 'data/coco/'
+dataset_type = 'CocoDataset'
+img_norm_cfg = dict(
+    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+img_scale = (640, 640)
+train_pipeline = [
+    dict(type='Mosaic', img_scale=(640, 640), pad_val=114.0),
+    dict(
+        type='RandomAffine', scaling_ratio_range=(0.1, 2),
+        border=(-320, -320)),
+    dict(
+        type='MixUp',
+        img_scale=(640, 640),
+        ratio_range=(0.8, 1.6),
+        pad_val=114.0),
+    dict(
+        type='PhotoMetricDistortion',
+        brightness_delta=32,
+        contrast_range=(0.5, 1.5),
+        saturation_range=(0.5, 1.5),
+        hue_delta=18),
+    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='Resize', keep_ratio=True),
+    dict(type='Pad', pad_to_square=True, pad_val=114.0),
+    dict(
+        type='Normalize',
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
+        to_rgb=True),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
+]
+train_dataset = dict(
+    type='MultiImageMixDataset',
+    dataset=dict(
+        type='CocoDataset',
+        ann_file='data/coco/annotations/train.json',
+        img_prefix='data/coco/image/',
+        pipeline=[
+            dict(type='LoadImageFromFile', to_float32=True),
+            dict(type='LoadAnnotations', with_bbox=True)
+        ],
+        filter_empty_gt=False),
+    pipeline=[
+        dict(type='Mosaic', img_scale=(640, 640), pad_val=114.0),
+        dict(
+            type='RandomAffine',
+            scaling_ratio_range=(0.1, 2),
+            border=(-320, -320)),
+        dict(
+            type='MixUp',
+            img_scale=(640, 640),
+            ratio_range=(0.8, 1.6),
+            pad_val=114.0),
+        dict(
+            type='PhotoMetricDistortion',
+            brightness_delta=32,
+            contrast_range=(0.5, 1.5),
+            saturation_range=(0.5, 1.5),
+            hue_delta=18),
+        dict(type='RandomFlip', flip_ratio=0.5),
+        dict(type='Resize', keep_ratio=True),
+        dict(type='Pad', pad_to_square=True, pad_val=114.0),
+        dict(
+            type='Normalize',
+            mean=[123.675, 116.28, 103.53],
+            std=[58.395, 57.12, 57.375],
+            to_rgb=True),
+        dict(type='DefaultFormatBundle'),
+        dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
+    ],
+    dynamic_scale=(640, 640))
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        type='MultiScaleFlipAug',
+        img_scale=(640, 640),
+        flip=False,
+        transforms=[
+            dict(type='Resize', keep_ratio=True),
+            dict(type='RandomFlip'),
+            dict(type='Pad', size=(640, 640), pad_val=114.0),
+            dict(
+                type='Normalize',
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True),
+            dict(type='DefaultFormatBundle'),
+            dict(type='Collect', keys=['img'])
+        ])
+]
+data = dict(
+    samples_per_gpu=8,
+    workers_per_gpu=2,
+    train=dict(
+        type='MultiImageMixDataset',
+        dataset=dict(
+            type='CocoDataset',
+            ann_file='data/coco/annotations/train.json',
+            img_prefix='data/coco/image/',
+            pipeline=[
+                dict(type='LoadImageFromFile', to_float32=True),
+                dict(type='LoadAnnotations', with_bbox=True)
+            ],
+            filter_empty_gt=False),
+        pipeline=[
+            dict(type='Mosaic', img_scale=(640, 640), pad_val=114.0),
+            dict(
+                type='RandomAffine',
+                scaling_ratio_range=(0.1, 2),
+                border=(-320, -320)),
+            dict(
+                type='MixUp',
+                img_scale=(640, 640),
+                ratio_range=(0.8, 1.6),
+                pad_val=114.0),
+            dict(
+                type='PhotoMetricDistortion',
+                brightness_delta=32,
+                contrast_range=(0.5, 1.5),
+                saturation_range=(0.5, 1.5),
+                hue_delta=18),
+            dict(type='RandomFlip', flip_ratio=0.5),
+            dict(type='Resize', keep_ratio=True),
+            dict(type='Pad', pad_to_square=True, pad_val=114.0),
+            dict(
+                type='Normalize',
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True),
+            dict(type='DefaultFormatBundle'),
+            dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
+        ],
+        dynamic_scale=(640, 640)),
+    val=dict(
+        type='CocoDataset',
+        ann_file='data/coco/annotations/val.json',
+        img_prefix='data/coco/image/',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(640, 640),
+                flip=False,
+                transforms=[
+                    dict(type='Resize', keep_ratio=True),
+                    dict(type='RandomFlip'),
+                    dict(type='Pad', size=(640, 640), pad_val=114.0),
+                    dict(
+                        type='Normalize',
+                        mean=[123.675, 116.28, 103.53],
+                        std=[58.395, 57.12, 57.375],
+                        to_rgb=True),
+                    dict(type='DefaultFormatBundle'),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]),
+    test=dict(
+        type='CocoDataset',
+        ann_file='data/coco/annotations/test.json',
+        img_prefix='data/coco/image/',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(640, 640),
+                flip=False,
+                transforms=[
+                    dict(type='Resize', keep_ratio=True),
+                    dict(type='RandomFlip'),
+                    dict(type='Pad', size=(640, 640), pad_val=114.0),
+                    dict(
+                        type='Normalize',
+                        mean=[123.675, 116.28, 103.53],
+                        std=[58.395, 57.12, 57.375],
+                        to_rgb=True),
+                    dict(type='DefaultFormatBundle'),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]))
+interval = 10
+evaluation = dict(interval=10, metric='bbox')
+work_dir = 'work_dir2'
+gpu_ids = range(0, 1)
+
+2021-12-02 15:20:31,433 - mmdet - INFO - Set random seed to 1032022079, deterministic: False
+2021-12-02 15:20:31,617 - mmdet - INFO - initialize CSPDarknet with init_cfg {'type': 'Kaiming', 'layer': 'Conv2d', 'a': 2.23606797749979, 'distribution': 'uniform', 'mode': 'fan_in', 'nonlinearity': 'leaky_relu'}
+2021-12-02 15:20:31,655 - mmdet - INFO - initialize YOLOXPAFPN with init_cfg {'type': 'Kaiming', 'layer': 'Conv2d', 'a': 2.23606797749979, 'distribution': 'uniform', 'mode': 'fan_in', 'nonlinearity': 'leaky_relu'}
+2021-12-02 15:20:31,689 - mmdet - INFO - initialize YOLOXHead with init_cfg {'type': 'Kaiming', 'layer': 'Conv2d', 'a': 2.23606797749979, 'distribution': 'uniform', 'mode': 'fan_in', 'nonlinearity': 'leaky_relu'}
+Name of parameter - Initialization information
+
+backbone.stem.conv.conv.weight - torch.Size([32, 12, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stem.conv.bn.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stem.conv.bn.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.0.conv.weight - torch.Size([64, 32, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage1.0.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.0.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.main_conv.conv.weight - torch.Size([32, 64, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage1.1.main_conv.bn.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.main_conv.bn.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.short_conv.conv.weight - torch.Size([32, 64, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage1.1.short_conv.bn.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.short_conv.bn.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.final_conv.conv.weight - torch.Size([64, 64, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage1.1.final_conv.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.final_conv.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.blocks.0.conv1.conv.weight - torch.Size([32, 32, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage1.1.blocks.0.conv1.bn.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.blocks.0.conv1.bn.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.blocks.0.conv2.conv.weight - torch.Size([32, 32, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage1.1.blocks.0.conv2.bn.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage1.1.blocks.0.conv2.bn.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.0.conv.weight - torch.Size([128, 64, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.main_conv.conv.weight - torch.Size([64, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.main_conv.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.main_conv.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.short_conv.conv.weight - torch.Size([64, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.short_conv.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.short_conv.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.final_conv.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.final_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.final_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.0.conv1.conv.weight - torch.Size([64, 64, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.blocks.0.conv1.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.0.conv1.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.0.conv2.conv.weight - torch.Size([64, 64, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.blocks.0.conv2.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.0.conv2.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.1.conv1.conv.weight - torch.Size([64, 64, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.blocks.1.conv1.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.1.conv1.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.1.conv2.conv.weight - torch.Size([64, 64, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.blocks.1.conv2.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.1.conv2.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.2.conv1.conv.weight - torch.Size([64, 64, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.blocks.2.conv1.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.2.conv1.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.2.conv2.conv.weight - torch.Size([64, 64, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage2.1.blocks.2.conv2.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage2.1.blocks.2.conv2.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.0.conv.weight - torch.Size([256, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.0.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.0.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.main_conv.conv.weight - torch.Size([128, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.main_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.main_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.short_conv.conv.weight - torch.Size([128, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.short_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.short_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.final_conv.conv.weight - torch.Size([256, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.final_conv.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.final_conv.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.0.conv1.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.blocks.0.conv1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.0.conv1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.0.conv2.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.blocks.0.conv2.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.0.conv2.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.1.conv1.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.blocks.1.conv1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.1.conv1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.1.conv2.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.blocks.1.conv2.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.1.conv2.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.2.conv1.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.blocks.2.conv1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.2.conv1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.2.conv2.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage3.1.blocks.2.conv2.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage3.1.blocks.2.conv2.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.0.conv.weight - torch.Size([512, 256, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.0.bn.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.0.bn.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.1.conv1.conv.weight - torch.Size([256, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.1.conv1.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.1.conv1.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.1.conv2.conv.weight - torch.Size([512, 1024, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.1.conv2.bn.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.1.conv2.bn.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.main_conv.conv.weight - torch.Size([256, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.2.main_conv.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.main_conv.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.short_conv.conv.weight - torch.Size([256, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.2.short_conv.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.short_conv.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.final_conv.conv.weight - torch.Size([512, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.2.final_conv.bn.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.final_conv.bn.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.blocks.0.conv1.conv.weight - torch.Size([256, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.2.blocks.0.conv1.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.blocks.0.conv1.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.blocks.0.conv2.conv.weight - torch.Size([256, 256, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+backbone.stage4.2.blocks.0.conv2.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+backbone.stage4.2.blocks.0.conv2.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.reduce_layers.0.conv.weight - torch.Size([256, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.reduce_layers.0.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.reduce_layers.0.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.reduce_layers.1.conv.weight - torch.Size([128, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.reduce_layers.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.reduce_layers.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.main_conv.conv.weight - torch.Size([128, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.0.main_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.main_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.short_conv.conv.weight - torch.Size([128, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.0.short_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.short_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.final_conv.conv.weight - torch.Size([256, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.0.final_conv.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.final_conv.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.blocks.0.conv1.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.0.blocks.0.conv1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.blocks.0.conv1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.blocks.0.conv2.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.0.blocks.0.conv2.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.0.blocks.0.conv2.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.main_conv.conv.weight - torch.Size([64, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.1.main_conv.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.main_conv.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.short_conv.conv.weight - torch.Size([64, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.1.short_conv.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.short_conv.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.final_conv.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.1.final_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.final_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.blocks.0.conv1.conv.weight - torch.Size([64, 64, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.1.blocks.0.conv1.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.blocks.0.conv1.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.blocks.0.conv2.conv.weight - torch.Size([64, 64, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.top_down_blocks.1.blocks.0.conv2.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.top_down_blocks.1.blocks.0.conv2.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.downsamples.0.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.downsamples.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.downsamples.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.downsamples.1.conv.weight - torch.Size([256, 256, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.downsamples.1.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.downsamples.1.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.main_conv.conv.weight - torch.Size([128, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.0.main_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.main_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.short_conv.conv.weight - torch.Size([128, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.0.short_conv.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.short_conv.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.final_conv.conv.weight - torch.Size([256, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.0.final_conv.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.final_conv.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.blocks.0.conv1.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.0.blocks.0.conv1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.blocks.0.conv1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.blocks.0.conv2.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.0.blocks.0.conv2.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.0.blocks.0.conv2.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.main_conv.conv.weight - torch.Size([256, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.1.main_conv.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.main_conv.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.short_conv.conv.weight - torch.Size([256, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.1.short_conv.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.short_conv.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.final_conv.conv.weight - torch.Size([512, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.1.final_conv.bn.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.final_conv.bn.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.blocks.0.conv1.conv.weight - torch.Size([256, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.1.blocks.0.conv1.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.blocks.0.conv1.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.blocks.0.conv2.conv.weight - torch.Size([256, 256, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.bottom_up_blocks.1.blocks.0.conv2.bn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.bottom_up_blocks.1.blocks.0.conv2.bn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.out_convs.0.conv.weight - torch.Size([128, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.out_convs.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.out_convs.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.out_convs.1.conv.weight - torch.Size([128, 256, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.out_convs.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.out_convs.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.out_convs.2.conv.weight - torch.Size([128, 512, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+neck.out_convs.2.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+neck.out_convs.2.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.0.0.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_cls_convs.0.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.0.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.0.1.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_cls_convs.0.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.0.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.1.0.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_cls_convs.1.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.1.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.1.1.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_cls_convs.1.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.1.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.2.0.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_cls_convs.2.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.2.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.2.1.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_cls_convs.2.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_cls_convs.2.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.0.0.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_reg_convs.0.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.0.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.0.1.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_reg_convs.0.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.0.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.1.0.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_reg_convs.1.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.1.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.1.1.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_reg_convs.1.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.1.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.2.0.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_reg_convs.2.0.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.2.0.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.2.1.conv.weight - torch.Size([128, 128, 3, 3]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_reg_convs.2.1.bn.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_reg_convs.2.1.bn.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of YOLOX  
+
+bbox_head.multi_level_conv_cls.0.weight - torch.Size([80, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_cls.0.bias - torch.Size([80]): 
+Initialized by user-defined `init_weights` in YOLOXHead  
+
+bbox_head.multi_level_conv_cls.1.weight - torch.Size([80, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_cls.1.bias - torch.Size([80]): 
+Initialized by user-defined `init_weights` in YOLOXHead  
+
+bbox_head.multi_level_conv_cls.2.weight - torch.Size([80, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_cls.2.bias - torch.Size([80]): 
+Initialized by user-defined `init_weights` in YOLOXHead  
+
+bbox_head.multi_level_conv_reg.0.weight - torch.Size([4, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_reg.0.bias - torch.Size([4]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_reg.1.weight - torch.Size([4, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_reg.1.bias - torch.Size([4]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_reg.2.weight - torch.Size([4, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_reg.2.bias - torch.Size([4]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_obj.0.weight - torch.Size([1, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_obj.0.bias - torch.Size([1]): 
+Initialized by user-defined `init_weights` in YOLOXHead  
+
+bbox_head.multi_level_conv_obj.1.weight - torch.Size([1, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_obj.1.bias - torch.Size([1]): 
+Initialized by user-defined `init_weights` in YOLOXHead  
+
+bbox_head.multi_level_conv_obj.2.weight - torch.Size([1, 128, 1, 1]): 
+KaimingInit: a=2.23606797749979, mode=fan_in, nonlinearity=leaky_relu, distribution =uniform, bias=0 
+
+bbox_head.multi_level_conv_obj.2.bias - torch.Size([1]): 
+Initialized by user-defined `init_weights` in YOLOXHead  
+2021-12-02 15:20:34,177 - mmdet - INFO - Start running, host: r10942155@rtx3090, work_dir: /home/r10942155/mmdetection/work_dir2
+2021-12-02 15:20:34,178 - mmdet - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) YOLOXLrUpdaterHook                 
+(49          ) ExpMomentumEMAHook                 
+(NORMAL      ) CheckpointHook                     
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) YOLOXLrUpdaterHook                 
+(48          ) YOLOXModeSwitchHook                
+(48          ) SyncNormHook                       
+(49          ) ExpMomentumEMAHook                 
+(LOW         ) IterTimerHook                      
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) YOLOXLrUpdaterHook                 
+(LOW         ) IterTimerHook                      
+(LOW         ) EvalHook                           
+ -------------------- 
+after_train_iter:
+(ABOVE_NORMAL) OptimizerHook                      
+(49          ) ExpMomentumEMAHook                 
+(NORMAL      ) CheckpointHook                     
+(LOW         ) IterTimerHook                      
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_train_epoch:
+(48          ) SyncRandomSizeHook                 
+(48          ) SyncNormHook                       
+(49          ) ExpMomentumEMAHook                 
+(NORMAL      ) CheckpointHook                     
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_epoch:
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+2021-12-02 15:20:34,178 - mmdet - INFO - workflow: [('train', 1)], max: 300 epochs
+2021-12-02 15:20:34,195 - mmdet - INFO - Checkpoints will be saved to /home/r10942155/mmdetection/work_dir2 by HardDiskBackend.
+2021-12-02 15:21:31,512 - mmdet - INFO - Epoch [1][50/60]	lr: 2.778e-04, eta: 5:42:50, time: 1.146, data_time: 0.961, memory: 4158, loss_cls: 2.0068, loss_bbox: 4.6599, loss_obj: 14.9903, loss: 21.6570
+2021-12-02 15:22:33,901 - mmdet - INFO - Epoch [2][50/60]	lr: 1.344e-03, eta: 4:58:27, time: 1.056, data_time: 0.858, memory: 4158, loss_cls: 2.1873, loss_bbox: 4.3404, loss_obj: 6.6901, loss: 13.2177
+2021-12-02 15:23:35,746 - mmdet - INFO - Epoch [3][50/60]	lr: 3.211e-03, eta: 4:44:55, time: 1.058, data_time: 0.874, memory: 4158, loss_cls: 2.4036, loss_bbox: 4.0438, loss_obj: 5.6876, loss: 12.1350
+2021-12-02 15:24:42,987 - mmdet - INFO - Epoch [4][50/60]	lr: 5.878e-03, eta: 4:41:38, time: 1.114, data_time: 0.848, memory: 6917, loss_cls: 2.3693, loss_bbox: 3.9586, loss_obj: 6.0957, loss: 12.4236
+2021-12-02 15:25:48,283 - mmdet - INFO - Epoch [5][50/60]	lr: 9.344e-03, eta: 4:37:13, time: 1.073, data_time: 0.892, memory: 6917, loss_cls: 2.4694, loss_bbox: 3.8733, loss_obj: 6.0427, loss: 12.3853
+2021-12-02 15:26:50,957 - mmdet - INFO - Epoch [6][50/60]	lr: 1.000e-02, eta: 4:33:52, time: 1.069, data_time: 0.886, memory: 6917, loss_cls: 2.4908, loss_bbox: 3.5918, loss_obj: 6.2774, loss: 12.3600
+2021-12-02 15:27:57,026 - mmdet - INFO - Epoch [7][50/60]	lr: 9.999e-03, eta: 4:32:33, time: 1.107, data_time: 0.839, memory: 6917, loss_cls: 2.3665, loss_bbox: 3.4833, loss_obj: 6.5318, loss: 12.3816
+2021-12-02 15:29:02,215 - mmdet - INFO - Epoch [8][50/60]	lr: 9.998e-03, eta: 4:30:08, time: 1.067, data_time: 0.886, memory: 6917, loss_cls: 2.1812, loss_bbox: 3.6447, loss_obj: 5.7437, loss: 11.5697
+2021-12-02 15:30:08,867 - mmdet - INFO - Epoch [9][50/60]	lr: 9.996e-03, eta: 4:30:18, time: 1.149, data_time: 0.937, memory: 6917, loss_cls: 2.1668, loss_bbox: 3.4652, loss_obj: 6.2292, loss: 11.8612
+2021-12-02 15:31:12,795 - mmdet - INFO - Epoch [10][50/60]	lr: 9.993e-03, eta: 4:28:41, time: 1.086, data_time: 0.874, memory: 6917, loss_cls: 2.0996, loss_bbox: 3.4520, loss_obj: 5.8191, loss: 11.3706
+2021-12-02 15:31:23,386 - mmdet - INFO - Saving checkpoint at 10 epochs
+2021-12-02 15:31:25,709 - mmdet - INFO - Evaluating bbox...
+2021-12-02 15:31:26,011 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.001
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.004
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.001
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.042
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.042
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.042
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.025
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.044
+
+2021-12-02 15:31:26,016 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 15:31:26,016 - mmdet - INFO - Epoch(val) [10][60]	bbox_mAP: 0.0010, bbox_mAP_50: 0.0040, bbox_mAP_75: 0.0000, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.0000, bbox_mAP_l: 0.0010, bbox_mAP_copypaste: 0.001 0.004 0.000 -1.000 0.000 0.001
+2021-12-02 15:32:22,552 - mmdet - INFO - Epoch [11][50/60]	lr: 9.990e-03, eta: 4:28:11, time: 1.130, data_time: 0.916, memory: 6917, loss_cls: 2.0716, loss_bbox: 3.3896, loss_obj: 6.1106, loss: 11.5718
+2021-12-02 15:33:24,717 - mmdet - INFO - Epoch [12][50/60]	lr: 9.986e-03, eta: 4:25:42, time: 1.037, data_time: 0.858, memory: 6917, loss_cls: 2.0168, loss_bbox: 3.5037, loss_obj: 5.5982, loss: 11.1187
+2021-12-02 15:34:27,721 - mmdet - INFO - Epoch [13][50/60]	lr: 9.982e-03, eta: 4:23:58, time: 1.063, data_time: 0.865, memory: 6917, loss_cls: 2.0239, loss_bbox: 3.4082, loss_obj: 5.5858, loss: 11.0179
+2021-12-02 15:35:31,216 - mmdet - INFO - Epoch [14][50/60]	lr: 9.977e-03, eta: 4:23:00, time: 1.100, data_time: 0.840, memory: 6917, loss_cls: 2.0490, loss_bbox: 3.2917, loss_obj: 6.2218, loss: 11.5625
+2021-12-02 15:36:36,880 - mmdet - INFO - Epoch [15][50/60]	lr: 9.971e-03, eta: 4:21:55, time: 1.093, data_time: 0.833, memory: 6917, loss_cls: 2.0334, loss_bbox: 3.2456, loss_obj: 6.1831, loss: 11.4622
+2021-12-02 15:37:43,036 - mmdet - INFO - Epoch [16][50/60]	lr: 9.965e-03, eta: 4:21:08, time: 1.111, data_time: 0.844, memory: 6917, loss_cls: 2.0586, loss_bbox: 3.2525, loss_obj: 6.2841, loss: 11.5952
+2021-12-02 15:38:49,645 - mmdet - INFO - Epoch [17][50/60]	lr: 9.958e-03, eta: 4:20:06, time: 1.095, data_time: 0.893, memory: 6917, loss_cls: 2.0016, loss_bbox: 3.2747, loss_obj: 5.9193, loss: 11.1955
+2021-12-02 15:39:52,583 - mmdet - INFO - Epoch [18][50/60]	lr: 9.951e-03, eta: 4:18:39, time: 1.062, data_time: 0.878, memory: 6917, loss_cls: 1.9649, loss_bbox: 3.3420, loss_obj: 5.3787, loss: 10.6856
+2021-12-02 15:40:55,035 - mmdet - INFO - Epoch [19][50/60]	lr: 9.943e-03, eta: 4:17:06, time: 1.049, data_time: 0.870, memory: 6917, loss_cls: 1.9119, loss_bbox: 3.3932, loss_obj: 5.2289, loss: 10.5341
+2021-12-02 15:42:00,305 - mmdet - INFO - Epoch [20][50/60]	lr: 9.934e-03, eta: 4:16:26, time: 1.118, data_time: 0.877, memory: 6917, loss_cls: 1.9618, loss_bbox: 3.2030, loss_obj: 5.9846, loss: 11.1493
+2021-12-02 15:42:10,697 - mmdet - INFO - Saving checkpoint at 20 epochs
+2021-12-02 15:42:12,973 - mmdet - INFO - Evaluating bbox...
+2021-12-02 15:42:13,168 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.008
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.023
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.001
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.001
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.009
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.045
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.045
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.045
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.050
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.047
+
+2021-12-02 15:42:13,171 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 15:42:13,172 - mmdet - INFO - Epoch(val) [20][60]	bbox_mAP: 0.0080, bbox_mAP_50: 0.0230, bbox_mAP_75: 0.0010, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.0010, bbox_mAP_l: 0.0090, bbox_mAP_copypaste: 0.008 0.023 0.001 -1.000 0.001 0.009
+2021-12-02 15:43:08,824 - mmdet - INFO - Epoch [21][50/60]	lr: 9.925e-03, eta: 4:15:40, time: 1.113, data_time: 0.871, memory: 6917, loss_cls: 1.9418, loss_bbox: 3.1595, loss_obj: 5.9219, loss: 11.0232
+2021-12-02 15:44:14,529 - mmdet - INFO - Epoch [22][50/60]	lr: 9.916e-03, eta: 4:14:49, time: 1.104, data_time: 0.837, memory: 6917, loss_cls: 1.9726, loss_bbox: 3.1519, loss_obj: 6.1209, loss: 11.2454
+2021-12-02 15:45:18,839 - mmdet - INFO - Epoch [23][50/60]	lr: 9.905e-03, eta: 4:13:27, time: 1.055, data_time: 0.878, memory: 6917, loss_cls: 1.8499, loss_bbox: 3.3699, loss_obj: 5.1518, loss: 10.3716
+2021-12-02 15:46:23,690 - mmdet - INFO - Epoch [24][50/60]	lr: 9.894e-03, eta: 4:12:37, time: 1.107, data_time: 0.914, memory: 6917, loss_cls: 1.8504, loss_bbox: 3.1891, loss_obj: 5.2816, loss: 10.3211
+2021-12-02 15:47:26,826 - mmdet - INFO - Epoch [25][50/60]	lr: 9.883e-03, eta: 4:11:30, time: 1.076, data_time: 0.865, memory: 6917, loss_cls: 1.8338, loss_bbox: 3.2050, loss_obj: 5.2266, loss: 10.2654
+2021-12-02 15:48:32,841 - mmdet - INFO - Epoch [26][50/60]	lr: 9.871e-03, eta: 4:10:44, time: 1.112, data_time: 0.842, memory: 6917, loss_cls: 1.9155, loss_bbox: 3.1535, loss_obj: 6.0556, loss: 11.1246
+2021-12-02 15:49:37,292 - mmdet - INFO - Epoch [27][50/60]	lr: 9.858e-03, eta: 4:09:30, time: 1.062, data_time: 0.881, memory: 6917, loss_cls: 1.8085, loss_bbox: 3.3018, loss_obj: 5.0699, loss: 10.1801
+2021-12-02 15:50:41,349 - mmdet - INFO - Epoch [28][50/60]	lr: 9.845e-03, eta: 4:08:33, time: 1.092, data_time: 0.898, memory: 6917, loss_cls: 1.8078, loss_bbox: 3.1377, loss_obj: 5.1828, loss: 10.1283
+2021-12-02 15:51:44,304 - mmdet - INFO - Epoch [29][50/60]	lr: 9.831e-03, eta: 4:07:26, time: 1.068, data_time: 0.886, memory: 6917, loss_cls: 1.7565, loss_bbox: 3.1942, loss_obj: 4.9165, loss: 9.8672
+2021-12-02 15:52:48,743 - mmdet - INFO - Epoch [30][50/60]	lr: 9.817e-03, eta: 4:06:29, time: 1.091, data_time: 0.878, memory: 6917, loss_cls: 1.7365, loss_bbox: 3.1585, loss_obj: 5.0324, loss: 9.9274
+2021-12-02 15:52:58,828 - mmdet - INFO - Saving checkpoint at 30 epochs
+2021-12-02 15:53:01,242 - mmdet - INFO - Evaluating bbox...
+2021-12-02 15:53:01,760 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.037
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.081
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.039
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.034
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.037
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.132
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.132
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.132
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.171
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.128
+
+2021-12-02 15:53:01,768 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 15:53:01,768 - mmdet - INFO - Epoch(val) [30][60]	bbox_mAP: 0.0370, bbox_mAP_50: 0.0810, bbox_mAP_75: 0.0390, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.0340, bbox_mAP_l: 0.0370, bbox_mAP_copypaste: 0.037 0.081 0.039 -1.000 0.034 0.037
+2021-12-02 15:53:58,011 - mmdet - INFO - Epoch [31][50/60]	lr: 9.802e-03, eta: 4:05:47, time: 1.124, data_time: 0.933, memory: 6917, loss_cls: 1.7309, loss_bbox: 3.1061, loss_obj: 5.0620, loss: 9.8989
+2021-12-02 15:55:02,239 - mmdet - INFO - Epoch [32][50/60]	lr: 9.786e-03, eta: 4:04:52, time: 1.095, data_time: 0.904, memory: 6917, loss_cls: 1.7158, loss_bbox: 3.0618, loss_obj: 4.9481, loss: 9.7257
+2021-12-02 15:56:06,750 - mmdet - INFO - Epoch [33][50/60]	lr: 9.770e-03, eta: 4:04:01, time: 1.105, data_time: 0.862, memory: 6917, loss_cls: 1.7706, loss_bbox: 3.0982, loss_obj: 5.5481, loss: 10.4169
+2021-12-02 15:57:13,069 - mmdet - INFO - Epoch [34][50/60]	lr: 9.754e-03, eta: 4:03:13, time: 1.113, data_time: 0.875, memory: 6917, loss_cls: 1.7241, loss_bbox: 3.0657, loss_obj: 5.4750, loss: 10.2648
+2021-12-02 15:58:18,525 - mmdet - INFO - Epoch [35][50/60]	lr: 9.736e-03, eta: 4:02:19, time: 1.098, data_time: 0.904, memory: 6917, loss_cls: 1.6827, loss_bbox: 3.0576, loss_obj: 4.9026, loss: 9.6429
+2021-12-02 15:59:25,048 - mmdet - INFO - Epoch [36][50/60]	lr: 9.719e-03, eta: 4:01:44, time: 1.150, data_time: 0.935, memory: 6917, loss_cls: 1.7469, loss_bbox: 3.0962, loss_obj: 5.4292, loss: 10.2723
+2021-12-02 16:00:30,693 - mmdet - INFO - Epoch [37][50/60]	lr: 9.700e-03, eta: 4:00:55, time: 1.115, data_time: 0.888, memory: 6917, loss_cls: 1.7531, loss_bbox: 3.0736, loss_obj: 5.4346, loss: 10.2613
+2021-12-02 16:01:37,977 - mmdet - INFO - Epoch [38][50/60]	lr: 9.681e-03, eta: 4:00:15, time: 1.141, data_time: 0.913, memory: 6917, loss_cls: 1.7254, loss_bbox: 3.0470, loss_obj: 5.3035, loss: 10.0760
+2021-12-02 16:02:43,112 - mmdet - INFO - Epoch [39][50/60]	lr: 9.662e-03, eta: 3:59:22, time: 1.105, data_time: 0.915, memory: 6917, loss_cls: 1.6634, loss_bbox: 3.0353, loss_obj: 4.8420, loss: 9.5407
+2021-12-02 16:03:45,540 - mmdet - INFO - Epoch [40][50/60]	lr: 9.642e-03, eta: 3:58:14, time: 1.060, data_time: 0.878, memory: 6917, loss_cls: 1.6543, loss_bbox: 3.0663, loss_obj: 5.0195, loss: 9.7401
+2021-12-02 16:03:56,228 - mmdet - INFO - Saving checkpoint at 40 epochs
+2021-12-02 16:03:58,584 - mmdet - INFO - Evaluating bbox...
+2021-12-02 16:03:58,868 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.027
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.076
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.011
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.149
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.027
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.133
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.133
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.133
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.204
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.129
+
+2021-12-02 16:03:58,873 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 16:03:58,873 - mmdet - INFO - Epoch(val) [40][60]	bbox_mAP: 0.0270, bbox_mAP_50: 0.0760, bbox_mAP_75: 0.0110, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1490, bbox_mAP_l: 0.0270, bbox_mAP_copypaste: 0.027 0.076 0.011 -1.000 0.149 0.027
+2021-12-02 16:04:53,237 - mmdet - INFO - Epoch [41][50/60]	lr: 9.621e-03, eta: 3:57:15, time: 1.087, data_time: 0.876, memory: 6917, loss_cls: 1.6258, loss_bbox: 3.0684, loss_obj: 4.7508, loss: 9.4450
+2021-12-02 16:06:00,974 - mmdet - INFO - Epoch [42][50/60]	lr: 9.600e-03, eta: 3:56:31, time: 1.134, data_time: 0.949, memory: 6917, loss_cls: 1.6399, loss_bbox: 3.0636, loss_obj: 5.0497, loss: 9.7531
+2021-12-02 16:07:05,076 - mmdet - INFO - Epoch [43][50/60]	lr: 9.578e-03, eta: 3:55:32, time: 1.088, data_time: 0.877, memory: 6917, loss_cls: 1.5967, loss_bbox: 3.0432, loss_obj: 4.7477, loss: 9.3877
+2021-12-02 16:08:11,385 - mmdet - INFO - Epoch [44][50/60]	lr: 9.556e-03, eta: 3:54:43, time: 1.119, data_time: 0.888, memory: 6917, loss_cls: 1.6975, loss_bbox: 3.0492, loss_obj: 5.2573, loss: 10.0040
+2021-12-02 16:09:15,928 - mmdet - INFO - Epoch [45][50/60]	lr: 9.533e-03, eta: 3:53:46, time: 1.092, data_time: 0.879, memory: 6917, loss_cls: 1.5627, loss_bbox: 3.0216, loss_obj: 4.6348, loss: 9.2191
+2021-12-02 16:10:23,949 - mmdet - INFO - Epoch [46][50/60]	lr: 9.510e-03, eta: 3:53:03, time: 1.144, data_time: 0.930, memory: 6917, loss_cls: 1.6644, loss_bbox: 3.0330, loss_obj: 5.1871, loss: 9.8844
+2021-12-02 16:11:31,212 - mmdet - INFO - Epoch [47][50/60]	lr: 9.486e-03, eta: 3:52:22, time: 1.151, data_time: 0.937, memory: 6917, loss_cls: 1.6532, loss_bbox: 3.0105, loss_obj: 5.1195, loss: 9.7831
+2021-12-02 16:12:35,726 - mmdet - INFO - Epoch [48][50/60]	lr: 9.462e-03, eta: 3:51:27, time: 1.100, data_time: 0.897, memory: 6917, loss_cls: 1.6236, loss_bbox: 3.0205, loss_obj: 5.0928, loss: 9.7369
+2021-12-02 16:13:38,371 - mmdet - INFO - Epoch [49][50/60]	lr: 9.437e-03, eta: 3:50:21, time: 1.059, data_time: 0.860, memory: 6917, loss_cls: 1.5925, loss_bbox: 3.0970, loss_obj: 4.7657, loss: 9.4552
+2021-12-02 16:14:40,699 - mmdet - INFO - Epoch [50][50/60]	lr: 9.412e-03, eta: 3:49:17, time: 1.067, data_time: 0.891, memory: 6917, loss_cls: 1.5619, loss_bbox: 3.1408, loss_obj: 4.5196, loss: 9.2223
+2021-12-02 16:14:49,987 - mmdet - INFO - Saving checkpoint at 50 epochs
+2021-12-02 16:14:52,366 - mmdet - INFO - Evaluating bbox...
+2021-12-02 16:14:52,780 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.051
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.134
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.024
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.082
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.050
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.193
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.193
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.193
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.229
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.188
+
+2021-12-02 16:14:52,786 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 16:14:52,787 - mmdet - INFO - Epoch(val) [50][60]	bbox_mAP: 0.0510, bbox_mAP_50: 0.1340, bbox_mAP_75: 0.0240, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.0820, bbox_mAP_l: 0.0500, bbox_mAP_copypaste: 0.051 0.134 0.024 -1.000 0.082 0.050
+2021-12-02 16:15:45,661 - mmdet - INFO - Epoch [51][50/60]	lr: 9.386e-03, eta: 3:48:12, time: 1.057, data_time: 0.855, memory: 6917, loss_cls: 1.5108, loss_bbox: 3.0661, loss_obj: 4.5718, loss: 9.1487
+2021-12-02 16:16:47,094 - mmdet - INFO - Epoch [52][50/60]	lr: 9.359e-03, eta: 3:47:05, time: 1.049, data_time: 0.870, memory: 6917, loss_cls: 1.5103, loss_bbox: 3.0962, loss_obj: 4.3787, loss: 8.9852
+2021-12-02 16:17:53,021 - mmdet - INFO - Epoch [53][50/60]	lr: 9.332e-03, eta: 3:46:16, time: 1.124, data_time: 0.883, memory: 6917, loss_cls: 1.6136, loss_bbox: 3.0436, loss_obj: 5.2472, loss: 9.9045
+2021-12-02 16:18:59,458 - mmdet - INFO - Epoch [54][50/60]	lr: 9.305e-03, eta: 3:45:26, time: 1.121, data_time: 0.934, memory: 6917, loss_cls: 1.5632, loss_bbox: 2.9937, loss_obj: 4.8379, loss: 9.3948
+2021-12-02 16:20:01,954 - mmdet - INFO - Epoch [55][50/60]	lr: 9.277e-03, eta: 3:44:22, time: 1.055, data_time: 0.870, memory: 6917, loss_cls: 1.5236, loss_bbox: 2.9997, loss_obj: 4.7190, loss: 9.2424
+2021-12-02 16:21:08,598 - mmdet - INFO - Epoch [56][50/60]	lr: 9.248e-03, eta: 3:43:29, time: 1.108, data_time: 0.902, memory: 6917, loss_cls: 1.5013, loss_bbox: 2.9821, loss_obj: 4.8634, loss: 9.3469
+2021-12-02 16:22:15,715 - mmdet - INFO - Epoch [57][50/60]	lr: 9.219e-03, eta: 3:42:46, time: 1.153, data_time: 0.940, memory: 6917, loss_cls: 1.5586, loss_bbox: 2.9916, loss_obj: 4.9288, loss: 9.4790
+2021-12-02 16:23:21,951 - mmdet - INFO - Epoch [58][50/60]	lr: 9.190e-03, eta: 3:41:58, time: 1.133, data_time: 0.945, memory: 6917, loss_cls: 1.4827, loss_bbox: 2.9497, loss_obj: 4.6765, loss: 9.1089
+2021-12-02 16:24:28,061 - mmdet - INFO - Epoch [59][50/60]	lr: 9.160e-03, eta: 3:41:09, time: 1.128, data_time: 0.900, memory: 6917, loss_cls: 1.5625, loss_bbox: 2.9594, loss_obj: 4.9046, loss: 9.4264
+2021-12-02 16:25:33,869 - mmdet - INFO - Epoch [60][50/60]	lr: 9.129e-03, eta: 3:40:17, time: 1.120, data_time: 0.929, memory: 6917, loss_cls: 1.5029, loss_bbox: 2.9866, loss_obj: 4.5574, loss: 9.0469
+2021-12-02 16:25:43,414 - mmdet - INFO - Saving checkpoint at 60 epochs
+2021-12-02 16:25:45,714 - mmdet - INFO - Evaluating bbox...
+2021-12-02 16:25:46,012 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.080
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.188
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.067
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.047
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.084
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.231
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.231
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.231
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.200
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.233
+
+2021-12-02 16:25:46,018 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 16:25:46,018 - mmdet - INFO - Epoch(val) [60][60]	bbox_mAP: 0.0800, bbox_mAP_50: 0.1880, bbox_mAP_75: 0.0670, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.0470, bbox_mAP_l: 0.0840, bbox_mAP_copypaste: 0.080 0.188 0.067 -1.000 0.047 0.084
+2021-12-02 16:26:38,533 - mmdet - INFO - Epoch [61][50/60]	lr: 9.098e-03, eta: 3:39:12, time: 1.050, data_time: 0.853, memory: 6917, loss_cls: 1.4781, loss_bbox: 3.0416, loss_obj: 4.5161, loss: 9.0359
+2021-12-02 16:27:42,961 - mmdet - INFO - Epoch [62][50/60]	lr: 9.067e-03, eta: 3:38:21, time: 1.118, data_time: 0.892, memory: 6917, loss_cls: 1.5123, loss_bbox: 2.9391, loss_obj: 4.8950, loss: 9.3464
+2021-12-02 16:28:49,235 - mmdet - INFO - Epoch [63][50/60]	lr: 9.035e-03, eta: 3:37:30, time: 1.119, data_time: 0.851, memory: 6917, loss_cls: 1.6088, loss_bbox: 2.9921, loss_obj: 5.2764, loss: 9.8773
+2021-12-02 16:29:53,771 - mmdet - INFO - Epoch [64][50/60]	lr: 9.002e-03, eta: 3:36:28, time: 1.067, data_time: 0.869, memory: 6917, loss_cls: 1.4371, loss_bbox: 2.9925, loss_obj: 4.3597, loss: 8.7894
+2021-12-02 16:30:57,267 - mmdet - INFO - Epoch [65][50/60]	lr: 8.969e-03, eta: 3:35:33, time: 1.098, data_time: 0.887, memory: 6917, loss_cls: 1.4516, loss_bbox: 2.9556, loss_obj: 4.3927, loss: 8.7999
+2021-12-02 16:32:02,762 - mmdet - INFO - Epoch [66][50/60]	lr: 8.936e-03, eta: 3:34:39, time: 1.104, data_time: 0.891, memory: 6917, loss_cls: 1.3856, loss_bbox: 2.8829, loss_obj: 4.2180, loss: 8.4866
+2021-12-02 16:33:08,642 - mmdet - INFO - Epoch [67][50/60]	lr: 8.902e-03, eta: 3:33:47, time: 1.118, data_time: 0.888, memory: 6917, loss_cls: 1.4709, loss_bbox: 2.9151, loss_obj: 4.6914, loss: 9.0774
+2021-12-02 16:34:11,275 - mmdet - INFO - Epoch [68][50/60]	lr: 8.868e-03, eta: 3:32:44, time: 1.056, data_time: 0.879, memory: 6917, loss_cls: 1.4631, loss_bbox: 3.0806, loss_obj: 4.2724, loss: 8.8161
+2021-12-02 16:35:15,963 - mmdet - INFO - Epoch [69][50/60]	lr: 8.833e-03, eta: 3:31:51, time: 1.108, data_time: 0.845, memory: 6917, loss_cls: 1.5112, loss_bbox: 2.9476, loss_obj: 5.0183, loss: 9.4770
+2021-12-02 16:36:20,426 - mmdet - INFO - Epoch [70][50/60]	lr: 8.798e-03, eta: 3:30:52, time: 1.079, data_time: 0.863, memory: 6917, loss_cls: 1.3819, loss_bbox: 2.8779, loss_obj: 4.2056, loss: 8.4654
+2021-12-02 16:36:30,775 - mmdet - INFO - Saving checkpoint at 70 epochs
+2021-12-02 16:36:33,121 - mmdet - INFO - Evaluating bbox...
+2021-12-02 16:36:33,394 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.117
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.230
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.095
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.161
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.119
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.253
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.253
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.253
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.263
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.247
+
+2021-12-02 16:36:33,398 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 16:36:33,398 - mmdet - INFO - Epoch(val) [70][60]	bbox_mAP: 0.1170, bbox_mAP_50: 0.2300, bbox_mAP_75: 0.0950, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1610, bbox_mAP_l: 0.1190, bbox_mAP_copypaste: 0.117 0.230 0.095 -1.000 0.161 0.119
+2021-12-02 16:37:29,408 - mmdet - INFO - Epoch [71][50/60]	lr: 8.762e-03, eta: 3:30:01, time: 1.120, data_time: 0.931, memory: 6917, loss_cls: 1.4028, loss_bbox: 2.9020, loss_obj: 4.4743, loss: 8.7791
+2021-12-02 16:38:33,444 - mmdet - INFO - Epoch [72][50/60]	lr: 8.726e-03, eta: 3:29:02, time: 1.077, data_time: 0.895, memory: 6917, loss_cls: 1.3928, loss_bbox: 3.0187, loss_obj: 4.1116, loss: 8.5231
+2021-12-02 16:39:39,102 - mmdet - INFO - Epoch [73][50/60]	lr: 8.689e-03, eta: 3:28:12, time: 1.130, data_time: 0.943, memory: 6917, loss_cls: 1.3728, loss_bbox: 2.8781, loss_obj: 4.3980, loss: 8.6489
+2021-12-02 16:40:44,552 - mmdet - INFO - Epoch [74][50/60]	lr: 8.652e-03, eta: 3:27:20, time: 1.119, data_time: 0.849, memory: 6917, loss_cls: 1.5507, loss_bbox: 2.9446, loss_obj: 5.0665, loss: 9.5618
+2021-12-02 16:41:53,504 - mmdet - INFO - Epoch [75][50/60]	lr: 8.615e-03, eta: 3:26:31, time: 1.144, data_time: 0.927, memory: 6917, loss_cls: 1.4650, loss_bbox: 2.9145, loss_obj: 4.6531, loss: 9.0326
+2021-12-02 16:42:56,796 - mmdet - INFO - Epoch [76][50/60]	lr: 8.577e-03, eta: 3:25:30, time: 1.059, data_time: 0.849, memory: 6917, loss_cls: 1.3625, loss_bbox: 2.8694, loss_obj: 4.1325, loss: 8.3643
+2021-12-02 16:44:02,116 - mmdet - INFO - Epoch [77][50/60]	lr: 8.539e-03, eta: 3:24:33, time: 1.085, data_time: 0.884, memory: 6917, loss_cls: 1.3748, loss_bbox: 2.8856, loss_obj: 4.5093, loss: 8.7697
+2021-12-02 16:45:05,832 - mmdet - INFO - Epoch [78][50/60]	lr: 8.500e-03, eta: 3:23:33, time: 1.064, data_time: 0.864, memory: 6917, loss_cls: 1.3609, loss_bbox: 2.9344, loss_obj: 4.2117, loss: 8.5071
+2021-12-02 16:46:09,817 - mmdet - INFO - Epoch [79][50/60]	lr: 8.461e-03, eta: 3:22:39, time: 1.107, data_time: 0.915, memory: 6917, loss_cls: 1.3705, loss_bbox: 2.8811, loss_obj: 4.2369, loss: 8.4886
+2021-12-02 16:47:16,380 - mmdet - INFO - Epoch [80][50/60]	lr: 8.422e-03, eta: 3:21:51, time: 1.151, data_time: 0.965, memory: 6917, loss_cls: 1.3332, loss_bbox: 2.8536, loss_obj: 4.2403, loss: 8.4271
+2021-12-02 16:47:26,107 - mmdet - INFO - Saving checkpoint at 80 epochs
+2021-12-02 16:47:28,428 - mmdet - INFO - Evaluating bbox...
+2021-12-02 16:47:28,707 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.115
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.249
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.100
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.162
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.119
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.233
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.233
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.233
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.250
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.227
+
+2021-12-02 16:47:28,711 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 16:47:28,711 - mmdet - INFO - Epoch(val) [80][60]	bbox_mAP: 0.1150, bbox_mAP_50: 0.2490, bbox_mAP_75: 0.1000, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1620, bbox_mAP_l: 0.1190, bbox_mAP_copypaste: 0.115 0.249 0.100 -1.000 0.162 0.119
+2021-12-02 16:48:24,517 - mmdet - INFO - Epoch [81][50/60]	lr: 8.382e-03, eta: 3:20:58, time: 1.116, data_time: 0.846, memory: 6917, loss_cls: 1.5055, loss_bbox: 2.9179, loss_obj: 4.9410, loss: 9.3643
+2021-12-02 16:49:30,491 - mmdet - INFO - Epoch [82][50/60]	lr: 8.342e-03, eta: 3:20:02, time: 1.091, data_time: 0.880, memory: 6917, loss_cls: 1.3157, loss_bbox: 2.8326, loss_obj: 3.9853, loss: 8.1337
+2021-12-02 16:50:36,228 - mmdet - INFO - Epoch [83][50/60]	lr: 8.301e-03, eta: 3:19:08, time: 1.106, data_time: 0.866, memory: 6917, loss_cls: 1.4495, loss_bbox: 2.8903, loss_obj: 4.6402, loss: 8.9800
+2021-12-02 16:51:42,538 - mmdet - INFO - Epoch [84][50/60]	lr: 8.260e-03, eta: 3:18:14, time: 1.114, data_time: 0.884, memory: 6917, loss_cls: 1.3827, loss_bbox: 2.8200, loss_obj: 4.4152, loss: 8.6179
+2021-12-02 16:52:47,530 - mmdet - INFO - Epoch [85][50/60]	lr: 8.219e-03, eta: 3:17:19, time: 1.097, data_time: 0.888, memory: 6917, loss_cls: 1.2611, loss_bbox: 2.8121, loss_obj: 3.8410, loss: 7.9142
+2021-12-02 16:53:50,936 - mmdet - INFO - Epoch [86][50/60]	lr: 8.177e-03, eta: 3:16:20, time: 1.065, data_time: 0.883, memory: 6917, loss_cls: 1.3549, loss_bbox: 2.9930, loss_obj: 4.0020, loss: 8.3499
+2021-12-02 16:54:53,831 - mmdet - INFO - Epoch [87][50/60]	lr: 8.135e-03, eta: 3:15:21, time: 1.071, data_time: 0.871, memory: 6917, loss_cls: 1.3290, loss_bbox: 2.8989, loss_obj: 4.0666, loss: 8.2945
+2021-12-02 16:55:59,524 - mmdet - INFO - Epoch [88][50/60]	lr: 8.092e-03, eta: 3:14:31, time: 1.140, data_time: 0.923, memory: 6917, loss_cls: 1.3932, loss_bbox: 2.8836, loss_obj: 4.4588, loss: 8.7356
+2021-12-02 16:57:04,912 - mmdet - INFO - Epoch [89][50/60]	lr: 8.049e-03, eta: 3:13:37, time: 1.112, data_time: 0.872, memory: 6917, loss_cls: 1.3968, loss_bbox: 2.8463, loss_obj: 4.4345, loss: 8.6776
+2021-12-02 16:58:09,817 - mmdet - INFO - Epoch [90][50/60]	lr: 8.006e-03, eta: 3:12:40, time: 1.080, data_time: 0.867, memory: 6917, loss_cls: 1.2573, loss_bbox: 2.7879, loss_obj: 3.7787, loss: 7.8240
+2021-12-02 16:58:19,969 - mmdet - INFO - Saving checkpoint at 90 epochs
+2021-12-02 16:58:22,269 - mmdet - INFO - Evaluating bbox...
+2021-12-02 16:58:22,442 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.144
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.309
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.105
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.200
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.145
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.281
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.281
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.281
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.258
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.274
+
+2021-12-02 16:58:22,446 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 16:58:22,446 - mmdet - INFO - Epoch(val) [90][60]	bbox_mAP: 0.1440, bbox_mAP_50: 0.3090, bbox_mAP_75: 0.1050, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2000, bbox_mAP_l: 0.1450, bbox_mAP_copypaste: 0.144 0.309 0.105 -1.000 0.200 0.145
+2021-12-02 16:59:14,839 - mmdet - INFO - Epoch [91][50/60]	lr: 7.962e-03, eta: 3:11:39, time: 1.047, data_time: 0.865, memory: 6917, loss_cls: 1.3251, loss_bbox: 2.9405, loss_obj: 3.8783, loss: 8.1439
+2021-12-02 17:00:20,069 - mmdet - INFO - Epoch [92][50/60]	lr: 7.918e-03, eta: 3:10:46, time: 1.116, data_time: 0.874, memory: 6917, loss_cls: 1.3780, loss_bbox: 2.8314, loss_obj: 4.3837, loss: 8.5932
+2021-12-02 17:01:23,145 - mmdet - INFO - Epoch [93][50/60]	lr: 7.874e-03, eta: 3:09:45, time: 1.049, data_time: 0.869, memory: 6917, loss_cls: 1.2966, loss_bbox: 2.9493, loss_obj: 3.8286, loss: 8.0746
+2021-12-02 17:02:30,295 - mmdet - INFO - Epoch [94][50/60]	lr: 7.830e-03, eta: 3:08:56, time: 1.154, data_time: 0.938, memory: 6917, loss_cls: 1.3525, loss_bbox: 2.8712, loss_obj: 4.3265, loss: 8.5502
+2021-12-02 17:03:32,293 - mmdet - INFO - Epoch [95][50/60]	lr: 7.785e-03, eta: 3:07:56, time: 1.048, data_time: 0.864, memory: 6917, loss_cls: 1.3369, loss_bbox: 2.8677, loss_obj: 4.1942, loss: 8.3987
+2021-12-02 17:04:38,434 - mmdet - INFO - Epoch [96][50/60]	lr: 7.739e-03, eta: 3:07:00, time: 1.094, data_time: 0.823, memory: 6924, loss_cls: 1.4009, loss_bbox: 2.8696, loss_obj: 4.6882, loss: 8.9586
+2021-12-02 17:05:43,172 - mmdet - INFO - Epoch [97][50/60]	lr: 7.694e-03, eta: 3:06:01, time: 1.061, data_time: 0.885, memory: 6924, loss_cls: 1.2730, loss_bbox: 2.9261, loss_obj: 3.7512, loss: 7.9503
+2021-12-02 17:06:44,882 - mmdet - INFO - Epoch [98][50/60]	lr: 7.648e-03, eta: 3:05:00, time: 1.038, data_time: 0.852, memory: 6924, loss_cls: 1.2392, loss_bbox: 2.8718, loss_obj: 3.6863, loss: 7.7972
+2021-12-02 17:07:47,599 - mmdet - INFO - Epoch [99][50/60]	lr: 7.602e-03, eta: 3:04:02, time: 1.073, data_time: 0.888, memory: 6924, loss_cls: 1.2526, loss_bbox: 2.8417, loss_obj: 3.9899, loss: 8.0841
+2021-12-02 17:08:54,524 - mmdet - INFO - Epoch [100][50/60]	lr: 7.555e-03, eta: 3:03:10, time: 1.125, data_time: 0.898, memory: 6924, loss_cls: 1.3082, loss_bbox: 2.8198, loss_obj: 4.2188, loss: 8.3468
+2021-12-02 17:09:04,106 - mmdet - INFO - Saving checkpoint at 100 epochs
+2021-12-02 17:09:06,372 - mmdet - INFO - Evaluating bbox...
+2021-12-02 17:09:06,562 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.136
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.309
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.101
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.199
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.142
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.267
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.267
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.267
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.267
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.260
+
+2021-12-02 17:09:06,566 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 17:09:06,566 - mmdet - INFO - Epoch(val) [100][60]	bbox_mAP: 0.1360, bbox_mAP_50: 0.3090, bbox_mAP_75: 0.1010, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1990, bbox_mAP_l: 0.1420, bbox_mAP_copypaste: 0.136 0.309 0.101 -1.000 0.199 0.142
+2021-12-02 17:10:03,153 - mmdet - INFO - Epoch [101][50/60]	lr: 7.509e-03, eta: 3:02:19, time: 1.131, data_time: 0.916, memory: 6924, loss_cls: 1.2868, loss_bbox: 2.7950, loss_obj: 4.1197, loss: 8.2016
+2021-12-02 17:11:06,547 - mmdet - INFO - Epoch [102][50/60]	lr: 7.462e-03, eta: 3:01:20, time: 1.062, data_time: 0.884, memory: 6924, loss_cls: 1.2357, loss_bbox: 2.8711, loss_obj: 3.6043, loss: 7.7111
+2021-12-02 17:12:09,601 - mmdet - INFO - Epoch [103][50/60]	lr: 7.414e-03, eta: 3:00:23, time: 1.073, data_time: 0.862, memory: 6924, loss_cls: 1.2095, loss_bbox: 2.7822, loss_obj: 3.6751, loss: 7.6668
+2021-12-02 17:13:14,893 - mmdet - INFO - Epoch [104][50/60]	lr: 7.367e-03, eta: 2:59:27, time: 1.089, data_time: 0.896, memory: 6924, loss_cls: 1.2717, loss_bbox: 2.8012, loss_obj: 3.8741, loss: 7.9470
+2021-12-02 17:14:20,441 - mmdet - INFO - Epoch [105][50/60]	lr: 7.319e-03, eta: 2:58:34, time: 1.116, data_time: 0.930, memory: 6924, loss_cls: 1.2675, loss_bbox: 2.7990, loss_obj: 4.0373, loss: 8.1039
+2021-12-02 17:15:24,972 - mmdet - INFO - Epoch [106][50/60]	lr: 7.271e-03, eta: 2:57:38, time: 1.089, data_time: 0.907, memory: 6924, loss_cls: 1.2066, loss_bbox: 2.8284, loss_obj: 3.5511, loss: 7.5861
+2021-12-02 17:16:28,095 - mmdet - INFO - Epoch [107][50/60]	lr: 7.222e-03, eta: 2:56:41, time: 1.070, data_time: 0.869, memory: 6924, loss_cls: 1.2599, loss_bbox: 2.8317, loss_obj: 3.7901, loss: 7.8817
+2021-12-02 17:17:31,927 - mmdet - INFO - Epoch [108][50/60]	lr: 7.174e-03, eta: 2:55:46, time: 1.103, data_time: 0.835, memory: 6924, loss_cls: 1.3884, loss_bbox: 2.8418, loss_obj: 4.5974, loss: 8.8276
+2021-12-02 17:18:37,820 - mmdet - INFO - Epoch [109][50/60]	lr: 7.125e-03, eta: 2:54:50, time: 1.082, data_time: 0.868, memory: 6924, loss_cls: 1.1637, loss_bbox: 2.7273, loss_obj: 3.5246, loss: 7.4157
+2021-12-02 17:19:43,280 - mmdet - INFO - Epoch [110][50/60]	lr: 7.076e-03, eta: 2:53:55, time: 1.095, data_time: 0.901, memory: 6924, loss_cls: 1.1958, loss_bbox: 2.7466, loss_obj: 3.6686, loss: 7.6111
+2021-12-02 17:19:52,832 - mmdet - INFO - Saving checkpoint at 110 epochs
+2021-12-02 17:19:55,131 - mmdet - INFO - Evaluating bbox...
+2021-12-02 17:19:55,372 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.170
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.373
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.128
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.214
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.172
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.310
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.310
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.310
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.229
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.307
+
+2021-12-02 17:19:55,377 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 17:19:55,377 - mmdet - INFO - Epoch(val) [110][60]	bbox_mAP: 0.1700, bbox_mAP_50: 0.3730, bbox_mAP_75: 0.1280, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2140, bbox_mAP_l: 0.1720, bbox_mAP_copypaste: 0.170 0.373 0.128 -1.000 0.214 0.172
+2021-12-02 17:20:47,930 - mmdet - INFO - Epoch [111][50/60]	lr: 7.027e-03, eta: 2:52:56, time: 1.051, data_time: 0.854, memory: 6924, loss_cls: 1.2005, loss_bbox: 2.7970, loss_obj: 3.6376, loss: 7.6351
+2021-12-02 17:21:52,196 - mmdet - INFO - Epoch [112][50/60]	lr: 6.977e-03, eta: 2:52:01, time: 1.096, data_time: 0.839, memory: 6924, loss_cls: 1.3636, loss_bbox: 2.8734, loss_obj: 4.5172, loss: 8.7542
+2021-12-02 17:22:58,110 - mmdet - INFO - Epoch [113][50/60]	lr: 6.927e-03, eta: 2:51:06, time: 1.092, data_time: 0.897, memory: 6924, loss_cls: 1.1764, loss_bbox: 2.7224, loss_obj: 3.5920, loss: 7.4909
+2021-12-02 17:24:00,891 - mmdet - INFO - Epoch [114][50/60]	lr: 6.877e-03, eta: 2:50:08, time: 1.060, data_time: 0.873, memory: 6924, loss_cls: 1.2127, loss_bbox: 2.7598, loss_obj: 3.7818, loss: 7.7543
+2021-12-02 17:25:05,032 - mmdet - INFO - Epoch [115][50/60]	lr: 6.827e-03, eta: 2:49:11, time: 1.069, data_time: 0.857, memory: 6924, loss_cls: 1.1181, loss_bbox: 2.6699, loss_obj: 3.3501, loss: 7.1381
+2021-12-02 17:26:09,023 - mmdet - INFO - Epoch [116][50/60]	lr: 6.777e-03, eta: 2:48:13, time: 1.062, data_time: 0.858, memory: 6924, loss_cls: 1.1418, loss_bbox: 2.7390, loss_obj: 3.4697, loss: 7.3505
+2021-12-02 17:27:10,659 - mmdet - INFO - Epoch [117][50/60]	lr: 6.726e-03, eta: 2:47:15, time: 1.056, data_time: 0.857, memory: 6924, loss_cls: 1.0619, loss_bbox: 2.6583, loss_obj: 3.1296, loss: 6.8498
+2021-12-02 17:28:13,833 - mmdet - INFO - Epoch [118][50/60]	lr: 6.676e-03, eta: 2:46:20, time: 1.084, data_time: 0.882, memory: 6924, loss_cls: 1.2527, loss_bbox: 2.8081, loss_obj: 4.0698, loss: 8.1306
+2021-12-02 17:29:21,877 - mmdet - INFO - Epoch [119][50/60]	lr: 6.625e-03, eta: 2:45:30, time: 1.156, data_time: 0.943, memory: 6924, loss_cls: 1.2330, loss_bbox: 2.7603, loss_obj: 3.9383, loss: 7.9316
+2021-12-02 17:30:28,838 - mmdet - INFO - Epoch [120][50/60]	lr: 6.574e-03, eta: 2:44:39, time: 1.148, data_time: 0.932, memory: 6924, loss_cls: 1.1318, loss_bbox: 2.6682, loss_obj: 3.6231, loss: 7.4231
+2021-12-02 17:30:38,270 - mmdet - INFO - Saving checkpoint at 120 epochs
+2021-12-02 17:30:40,545 - mmdet - INFO - Evaluating bbox...
+2021-12-02 17:30:40,786 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.146
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.346
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.107
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.219
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.145
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.272
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.272
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.272
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.242
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.269
+
+2021-12-02 17:30:40,790 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 17:30:40,790 - mmdet - INFO - Epoch(val) [120][60]	bbox_mAP: 0.1460, bbox_mAP_50: 0.3460, bbox_mAP_75: 0.1070, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2190, bbox_mAP_l: 0.1450, bbox_mAP_copypaste: 0.146 0.346 0.107 -1.000 0.219 0.145
+2021-12-02 17:31:35,891 - mmdet - INFO - Epoch [121][50/60]	lr: 6.522e-03, eta: 2:43:44, time: 1.102, data_time: 0.910, memory: 6924, loss_cls: 1.1530, loss_bbox: 2.7003, loss_obj: 3.4671, loss: 7.3204
+2021-12-02 17:32:39,894 - mmdet - INFO - Epoch [122][50/60]	lr: 6.471e-03, eta: 2:42:50, time: 1.099, data_time: 0.895, memory: 6924, loss_cls: 1.1641, loss_bbox: 2.7117, loss_obj: 3.6983, loss: 7.5742
+2021-12-02 17:33:44,919 - mmdet - INFO - Epoch [123][50/60]	lr: 6.419e-03, eta: 2:41:55, time: 1.107, data_time: 0.901, memory: 6924, loss_cls: 1.0819, loss_bbox: 2.6250, loss_obj: 3.3575, loss: 7.0644
+2021-12-02 17:34:49,900 - mmdet - INFO - Epoch [124][50/60]	lr: 6.368e-03, eta: 2:41:01, time: 1.108, data_time: 0.866, memory: 6924, loss_cls: 1.2821, loss_bbox: 2.7973, loss_obj: 4.1936, loss: 8.2730
+2021-12-02 17:35:54,903 - mmdet - INFO - Epoch [125][50/60]	lr: 6.316e-03, eta: 2:40:06, time: 1.085, data_time: 0.872, memory: 6924, loss_cls: 1.1429, loss_bbox: 2.6914, loss_obj: 3.3815, loss: 7.2158
+2021-12-02 17:37:02,761 - mmdet - INFO - Epoch [126][50/60]	lr: 6.264e-03, eta: 2:39:14, time: 1.145, data_time: 0.960, memory: 6924, loss_cls: 1.1863, loss_bbox: 2.7453, loss_obj: 3.7734, loss: 7.7050
+2021-12-02 17:38:07,258 - mmdet - INFO - Epoch [127][50/60]	lr: 6.212e-03, eta: 2:38:19, time: 1.098, data_time: 0.839, memory: 6924, loss_cls: 1.3038, loss_bbox: 2.7858, loss_obj: 4.2324, loss: 8.3220
+2021-12-02 17:39:13,120 - mmdet - INFO - Epoch [128][50/60]	lr: 6.159e-03, eta: 2:37:25, time: 1.103, data_time: 0.912, memory: 6924, loss_cls: 1.1289, loss_bbox: 2.6685, loss_obj: 3.3903, loss: 7.1878
+2021-12-02 17:40:18,760 - mmdet - INFO - Epoch [129][50/60]	lr: 6.107e-03, eta: 2:36:32, time: 1.122, data_time: 0.880, memory: 6924, loss_cls: 1.2062, loss_bbox: 2.7401, loss_obj: 3.9083, loss: 7.8545
+2021-12-02 17:41:23,611 - mmdet - INFO - Epoch [130][50/60]	lr: 6.054e-03, eta: 2:35:37, time: 1.095, data_time: 0.903, memory: 6924, loss_cls: 1.0557, loss_bbox: 2.5796, loss_obj: 3.1258, loss: 6.7610
+2021-12-02 17:41:32,998 - mmdet - INFO - Saving checkpoint at 130 epochs
+2021-12-02 17:41:35,310 - mmdet - INFO - Evaluating bbox...
+2021-12-02 17:41:35,457 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.171
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.358
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.136
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.226
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.172
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.276
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.276
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.276
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.258
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.270
+
+2021-12-02 17:41:35,461 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 17:41:35,461 - mmdet - INFO - Epoch(val) [130][60]	bbox_mAP: 0.1710, bbox_mAP_50: 0.3580, bbox_mAP_75: 0.1360, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2260, bbox_mAP_l: 0.1720, bbox_mAP_copypaste: 0.171 0.358 0.136 -1.000 0.226 0.172
+2021-12-02 17:42:32,650 - mmdet - INFO - Epoch [131][50/60]	lr: 6.002e-03, eta: 2:34:45, time: 1.143, data_time: 0.915, memory: 6924, loss_cls: 1.2273, loss_bbox: 2.7388, loss_obj: 3.9021, loss: 7.8682
+2021-12-02 17:43:36,798 - mmdet - INFO - Epoch [132][50/60]	lr: 5.949e-03, eta: 2:33:49, time: 1.090, data_time: 0.894, memory: 6924, loss_cls: 1.0246, loss_bbox: 2.5463, loss_obj: 3.0253, loss: 6.5962
+2021-12-02 17:44:40,412 - mmdet - INFO - Epoch [133][50/60]	lr: 5.896e-03, eta: 2:32:53, time: 1.078, data_time: 0.864, memory: 6924, loss_cls: 1.0575, loss_bbox: 2.6516, loss_obj: 3.1490, loss: 6.8581
+2021-12-02 17:45:44,163 - mmdet - INFO - Epoch [134][50/60]	lr: 5.844e-03, eta: 2:31:56, time: 1.064, data_time: 0.881, memory: 6924, loss_cls: 1.1389, loss_bbox: 2.7778, loss_obj: 3.2998, loss: 7.2165
+2021-12-02 17:46:46,683 - mmdet - INFO - Epoch [135][50/60]	lr: 5.791e-03, eta: 2:30:59, time: 1.052, data_time: 0.868, memory: 6924, loss_cls: 1.0337, loss_bbox: 2.6652, loss_obj: 2.9077, loss: 6.6066
+2021-12-02 17:47:51,753 - mmdet - INFO - Epoch [136][50/60]	lr: 5.738e-03, eta: 2:30:05, time: 1.120, data_time: 0.852, memory: 6924, loss_cls: 1.3192, loss_bbox: 2.8567, loss_obj: 4.4133, loss: 8.5892
+2021-12-02 17:49:00,106 - mmdet - INFO - Epoch [137][50/60]	lr: 5.685e-03, eta: 2:29:13, time: 1.134, data_time: 0.904, memory: 6924, loss_cls: 1.1835, loss_bbox: 2.6909, loss_obj: 3.7553, loss: 7.6296
+2021-12-02 17:50:05,597 - mmdet - INFO - Epoch [138][50/60]	lr: 5.632e-03, eta: 2:28:18, time: 1.111, data_time: 0.871, memory: 6924, loss_cls: 1.1735, loss_bbox: 2.6461, loss_obj: 3.7248, loss: 7.5444
+2021-12-02 17:51:11,813 - mmdet - INFO - Epoch [139][50/60]	lr: 5.578e-03, eta: 2:27:25, time: 1.122, data_time: 0.932, memory: 6924, loss_cls: 1.1499, loss_bbox: 2.6969, loss_obj: 3.6463, loss: 7.4931
+2021-12-02 17:52:14,596 - mmdet - INFO - Epoch [140][50/60]	lr: 5.525e-03, eta: 2:26:28, time: 1.060, data_time: 0.872, memory: 6924, loss_cls: 1.1477, loss_bbox: 2.6992, loss_obj: 3.5797, loss: 7.4266
+2021-12-02 17:52:25,270 - mmdet - INFO - Saving checkpoint at 140 epochs
+2021-12-02 17:52:27,568 - mmdet - INFO - Evaluating bbox...
+2021-12-02 17:52:27,769 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.177
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.382
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.142
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.231
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.175
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.307
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.307
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.307
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.263
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.301
+
+2021-12-02 17:52:27,775 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 17:52:27,775 - mmdet - INFO - Epoch(val) [140][60]	bbox_mAP: 0.1770, bbox_mAP_50: 0.3820, bbox_mAP_75: 0.1420, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2310, bbox_mAP_l: 0.1750, bbox_mAP_copypaste: 0.177 0.382 0.142 -1.000 0.231 0.175
+2021-12-02 17:53:23,362 - mmdet - INFO - Epoch [141][50/60]	lr: 5.472e-03, eta: 2:25:34, time: 1.111, data_time: 0.848, memory: 6924, loss_cls: 1.2045, loss_bbox: 2.7187, loss_obj: 3.9065, loss: 7.8298
+2021-12-02 17:54:29,784 - mmdet - INFO - Epoch [142][50/60]	lr: 5.419e-03, eta: 2:24:40, time: 1.113, data_time: 0.921, memory: 6924, loss_cls: 1.0275, loss_bbox: 2.5694, loss_obj: 3.0242, loss: 6.6211
+2021-12-02 17:55:33,923 - mmdet - INFO - Epoch [143][50/60]	lr: 5.365e-03, eta: 2:23:45, time: 1.100, data_time: 0.909, memory: 6924, loss_cls: 0.9554, loss_bbox: 2.4667, loss_obj: 2.6838, loss: 6.1059
+2021-12-02 17:56:37,550 - mmdet - INFO - Epoch [144][50/60]	lr: 5.312e-03, eta: 2:22:49, time: 1.081, data_time: 0.899, memory: 6924, loss_cls: 1.0525, loss_bbox: 2.7005, loss_obj: 2.9748, loss: 6.7278
+2021-12-02 17:57:40,046 - mmdet - INFO - Epoch [145][50/60]	lr: 5.259e-03, eta: 2:21:52, time: 1.056, data_time: 0.875, memory: 6924, loss_cls: 1.1671, loss_bbox: 2.8199, loss_obj: 3.3307, loss: 7.3177
+2021-12-02 17:58:47,179 - mmdet - INFO - Epoch [146][50/60]	lr: 5.206e-03, eta: 2:21:00, time: 1.150, data_time: 0.935, memory: 6924, loss_cls: 1.1629, loss_bbox: 2.7193, loss_obj: 3.7705, loss: 7.6527
+2021-12-02 17:59:51,441 - mmdet - INFO - Epoch [147][50/60]	lr: 5.152e-03, eta: 2:20:05, time: 1.093, data_time: 0.892, memory: 6924, loss_cls: 1.0956, loss_bbox: 2.6304, loss_obj: 3.4438, loss: 7.1698
+2021-12-02 18:00:54,055 - mmdet - INFO - Epoch [148][50/60]	lr: 5.099e-03, eta: 2:19:08, time: 1.055, data_time: 0.858, memory: 6924, loss_cls: 1.1090, loss_bbox: 2.7071, loss_obj: 3.3142, loss: 7.1303
+2021-12-02 18:01:55,656 - mmdet - INFO - Epoch [149][50/60]	lr: 5.046e-03, eta: 2:18:11, time: 1.054, data_time: 0.857, memory: 6924, loss_cls: 0.9975, loss_bbox: 2.6041, loss_obj: 2.8517, loss: 6.4533
+2021-12-02 18:02:59,136 - mmdet - INFO - Epoch [150][50/60]	lr: 4.993e-03, eta: 2:17:16, time: 1.091, data_time: 0.880, memory: 6924, loss_cls: 1.0374, loss_bbox: 2.6139, loss_obj: 3.0303, loss: 6.6815
+2021-12-02 18:03:09,459 - mmdet - INFO - Saving checkpoint at 150 epochs
+2021-12-02 18:03:11,735 - mmdet - INFO - Evaluating bbox...
+2021-12-02 18:03:11,925 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.193
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.372
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.171
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.189
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.193
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.325
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.325
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.325
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.271
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.321
+
+2021-12-02 18:03:11,929 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 18:03:11,929 - mmdet - INFO - Epoch(val) [150][60]	bbox_mAP: 0.1930, bbox_mAP_50: 0.3720, bbox_mAP_75: 0.1710, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1890, bbox_mAP_l: 0.1930, bbox_mAP_copypaste: 0.193 0.372 0.171 -1.000 0.189 0.193
+2021-12-02 18:04:05,018 - mmdet - INFO - Epoch [151][50/60]	lr: 4.939e-03, eta: 2:16:19, time: 1.061, data_time: 0.864, memory: 6924, loss_cls: 0.9906, loss_bbox: 2.5748, loss_obj: 2.7608, loss: 6.3261
+2021-12-02 18:05:10,376 - mmdet - INFO - Epoch [152][50/60]	lr: 4.886e-03, eta: 2:15:26, time: 1.133, data_time: 0.905, memory: 6924, loss_cls: 1.1343, loss_bbox: 2.6854, loss_obj: 3.6407, loss: 7.4604
+2021-12-02 18:06:15,473 - mmdet - INFO - Epoch [153][50/60]	lr: 4.833e-03, eta: 2:14:32, time: 1.109, data_time: 0.846, memory: 6924, loss_cls: 1.1669, loss_bbox: 2.6895, loss_obj: 3.7609, loss: 7.6174
+2021-12-02 18:07:20,861 - mmdet - INFO - Epoch [154][50/60]	lr: 4.780e-03, eta: 2:13:37, time: 1.098, data_time: 0.896, memory: 6924, loss_cls: 1.0635, loss_bbox: 2.6123, loss_obj: 3.3005, loss: 6.9763
+2021-12-02 18:08:24,921 - mmdet - INFO - Epoch [155][50/60]	lr: 4.727e-03, eta: 2:12:42, time: 1.089, data_time: 0.877, memory: 6924, loss_cls: 0.9988, loss_bbox: 2.5640, loss_obj: 2.8776, loss: 6.4403
+2021-12-02 18:09:32,221 - mmdet - INFO - Epoch [156][50/60]	lr: 4.674e-03, eta: 2:11:49, time: 1.133, data_time: 0.904, memory: 6924, loss_cls: 1.0731, loss_bbox: 2.6087, loss_obj: 3.2871, loss: 6.9689
+2021-12-02 18:10:38,348 - mmdet - INFO - Epoch [157][50/60]	lr: 4.621e-03, eta: 2:10:55, time: 1.124, data_time: 0.935, memory: 6924, loss_cls: 1.0903, loss_bbox: 2.6651, loss_obj: 3.4398, loss: 7.1952
+2021-12-02 18:11:43,239 - mmdet - INFO - Epoch [158][50/60]	lr: 4.568e-03, eta: 2:10:00, time: 1.099, data_time: 0.829, memory: 6924, loss_cls: 1.2363, loss_bbox: 2.7542, loss_obj: 4.0574, loss: 8.0479
+2021-12-02 18:12:48,836 - mmdet - INFO - Epoch [159][50/60]	lr: 4.516e-03, eta: 2:09:05, time: 1.086, data_time: 0.884, memory: 6924, loss_cls: 1.0069, loss_bbox: 2.5659, loss_obj: 3.1262, loss: 6.6990
+2021-12-02 18:13:51,977 - mmdet - INFO - Epoch [160][50/60]	lr: 4.463e-03, eta: 2:08:08, time: 1.066, data_time: 0.868, memory: 6924, loss_cls: 1.0274, loss_bbox: 2.5960, loss_obj: 2.8743, loss: 6.4978
+2021-12-02 18:14:00,711 - mmdet - INFO - Saving checkpoint at 160 epochs
+2021-12-02 18:14:02,989 - mmdet - INFO - Evaluating bbox...
+2021-12-02 18:14:03,220 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.201
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.394
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.186
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.220
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.202
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.303
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.303
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.303
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.296
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.293
+
+2021-12-02 18:14:03,223 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 18:14:03,223 - mmdet - INFO - Epoch(val) [160][60]	bbox_mAP: 0.2010, bbox_mAP_50: 0.3940, bbox_mAP_75: 0.1860, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2200, bbox_mAP_l: 0.2020, bbox_mAP_copypaste: 0.201 0.394 0.186 -1.000 0.220 0.202
+2021-12-02 18:14:55,925 - mmdet - INFO - Epoch [161][50/60]	lr: 4.411e-03, eta: 2:07:12, time: 1.054, data_time: 0.872, memory: 6924, loss_cls: 1.1210, loss_bbox: 2.7840, loss_obj: 3.1506, loss: 7.0556
+2021-12-02 18:16:00,996 - mmdet - INFO - Epoch [162][50/60]	lr: 4.358e-03, eta: 2:06:18, time: 1.115, data_time: 0.876, memory: 6924, loss_cls: 1.1580, loss_bbox: 2.6781, loss_obj: 3.6495, loss: 7.4857
+2021-12-02 18:17:09,102 - mmdet - INFO - Epoch [163][50/60]	lr: 4.306e-03, eta: 2:05:25, time: 1.154, data_time: 0.937, memory: 6924, loss_cls: 1.0966, loss_bbox: 2.6244, loss_obj: 3.4951, loss: 7.2161
+2021-12-02 18:18:13,649 - mmdet - INFO - Epoch [164][50/60]	lr: 4.254e-03, eta: 2:04:30, time: 1.090, data_time: 0.895, memory: 6924, loss_cls: 0.9831, loss_bbox: 2.5028, loss_obj: 2.8417, loss: 6.3276
+2021-12-02 18:19:18,449 - mmdet - INFO - Epoch [165][50/60]	lr: 4.202e-03, eta: 2:03:36, time: 1.112, data_time: 0.871, memory: 6924, loss_cls: 1.0678, loss_bbox: 2.5650, loss_obj: 3.2420, loss: 6.8748
+2021-12-02 18:20:23,469 - mmdet - INFO - Epoch [166][50/60]	lr: 4.150e-03, eta: 2:02:40, time: 1.079, data_time: 0.896, memory: 6924, loss_cls: 1.0413, loss_bbox: 2.6762, loss_obj: 2.9193, loss: 6.6368
+2021-12-02 18:21:29,060 - mmdet - INFO - Epoch [167][50/60]	lr: 4.098e-03, eta: 2:01:46, time: 1.123, data_time: 0.936, memory: 6924, loss_cls: 1.0551, loss_bbox: 2.5980, loss_obj: 3.1980, loss: 6.8512
+2021-12-02 18:22:33,586 - mmdet - INFO - Epoch [168][50/60]	lr: 4.046e-03, eta: 2:00:52, time: 1.101, data_time: 0.828, memory: 6924, loss_cls: 1.1478, loss_bbox: 2.6930, loss_obj: 3.7028, loss: 7.5436
+2021-12-02 18:23:42,302 - mmdet - INFO - Epoch [169][50/60]	lr: 3.995e-03, eta: 1:59:58, time: 1.136, data_time: 0.909, memory: 6924, loss_cls: 1.0231, loss_bbox: 2.5343, loss_obj: 3.1369, loss: 6.6943
+2021-12-02 18:24:48,449 - mmdet - INFO - Epoch [170][50/60]	lr: 3.944e-03, eta: 1:59:05, time: 1.130, data_time: 0.942, memory: 6924, loss_cls: 0.9923, loss_bbox: 2.5308, loss_obj: 2.9167, loss: 6.4398
+2021-12-02 18:24:57,862 - mmdet - INFO - Saving checkpoint at 170 epochs
+2021-12-02 18:25:00,140 - mmdet - INFO - Evaluating bbox...
+2021-12-02 18:25:00,285 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.196
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.397
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.175
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.261
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.194
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.306
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.306
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.306
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.279
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.299
+
+2021-12-02 18:25:00,288 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 18:25:00,289 - mmdet - INFO - Epoch(val) [170][60]	bbox_mAP: 0.1960, bbox_mAP_50: 0.3970, bbox_mAP_75: 0.1750, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2610, bbox_mAP_l: 0.1940, bbox_mAP_copypaste: 0.196 0.397 0.175 -1.000 0.261 0.194
+2021-12-02 18:25:57,218 - mmdet - INFO - Epoch [171][50/60]	lr: 3.892e-03, eta: 1:58:11, time: 1.138, data_time: 0.953, memory: 6924, loss_cls: 0.9194, loss_bbox: 2.4532, loss_obj: 2.5445, loss: 5.9171
+2021-12-02 18:27:01,666 - mmdet - INFO - Epoch [172][50/60]	lr: 3.841e-03, eta: 1:57:16, time: 1.093, data_time: 0.832, memory: 6924, loss_cls: 1.1191, loss_bbox: 2.6540, loss_obj: 3.5480, loss: 7.3211
+2021-12-02 18:28:08,831 - mmdet - INFO - Epoch [173][50/60]	lr: 3.791e-03, eta: 1:56:22, time: 1.126, data_time: 0.913, memory: 6924, loss_cls: 1.0785, loss_bbox: 2.6053, loss_obj: 3.3294, loss: 7.0131
+2021-12-02 18:29:14,076 - mmdet - INFO - Epoch [174][50/60]	lr: 3.740e-03, eta: 1:55:27, time: 1.100, data_time: 0.909, memory: 6924, loss_cls: 0.9561, loss_bbox: 2.4666, loss_obj: 2.7178, loss: 6.1405
+2021-12-02 18:30:20,879 - mmdet - INFO - Epoch [175][50/60]	lr: 3.690e-03, eta: 1:54:34, time: 1.154, data_time: 0.938, memory: 6924, loss_cls: 0.9968, loss_bbox: 2.4986, loss_obj: 2.9308, loss: 6.4262
+2021-12-02 18:31:24,640 - mmdet - INFO - Epoch [176][50/60]	lr: 3.639e-03, eta: 1:53:39, time: 1.083, data_time: 0.880, memory: 6924, loss_cls: 0.9971, loss_bbox: 2.5073, loss_obj: 2.9555, loss: 6.4599
+2021-12-02 18:32:30,002 - mmdet - INFO - Epoch [177][50/60]	lr: 3.589e-03, eta: 1:52:45, time: 1.112, data_time: 0.846, memory: 6924, loss_cls: 1.1060, loss_bbox: 2.6253, loss_obj: 3.5250, loss: 7.2563
+2021-12-02 18:33:38,431 - mmdet - INFO - Epoch [178][50/60]	lr: 3.539e-03, eta: 1:51:51, time: 1.134, data_time: 0.946, memory: 6924, loss_cls: 0.9472, loss_bbox: 2.4717, loss_obj: 2.7285, loss: 6.1475
+2021-12-02 18:34:44,118 - mmdet - INFO - Epoch [179][50/60]	lr: 3.490e-03, eta: 1:50:56, time: 1.117, data_time: 0.892, memory: 6924, loss_cls: 1.0038, loss_bbox: 2.5037, loss_obj: 2.9683, loss: 6.4758
+2021-12-02 18:35:51,563 - mmdet - INFO - Epoch [180][50/60]	lr: 3.440e-03, eta: 1:50:03, time: 1.138, data_time: 0.951, memory: 6924, loss_cls: 0.8936, loss_bbox: 2.3732, loss_obj: 2.4051, loss: 5.6719
+2021-12-02 18:36:02,053 - mmdet - INFO - Saving checkpoint at 180 epochs
+2021-12-02 18:36:04,351 - mmdet - INFO - Evaluating bbox...
+2021-12-02 18:36:04,489 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.189
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.380
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.181
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.248
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.186
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.285
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.285
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.285
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.271
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.279
+
+2021-12-02 18:36:04,493 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 18:36:04,493 - mmdet - INFO - Epoch(val) [180][60]	bbox_mAP: 0.1890, bbox_mAP_50: 0.3800, bbox_mAP_75: 0.1810, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2480, bbox_mAP_l: 0.1860, bbox_mAP_copypaste: 0.189 0.380 0.181 -1.000 0.248 0.186
+2021-12-02 18:36:57,952 - mmdet - INFO - Epoch [181][50/60]	lr: 3.391e-03, eta: 1:49:07, time: 1.069, data_time: 0.884, memory: 6924, loss_cls: 0.9822, loss_bbox: 2.6249, loss_obj: 2.6919, loss: 6.2991
+2021-12-02 18:38:01,987 - mmdet - INFO - Epoch [182][50/60]	lr: 3.342e-03, eta: 1:48:12, time: 1.089, data_time: 0.829, memory: 6924, loss_cls: 1.0819, loss_bbox: 2.6222, loss_obj: 3.3831, loss: 7.0872
+2021-12-02 18:39:09,981 - mmdet - INFO - Epoch [183][50/60]	lr: 3.294e-03, eta: 1:47:18, time: 1.134, data_time: 0.949, memory: 6924, loss_cls: 0.8935, loss_bbox: 2.3834, loss_obj: 2.3630, loss: 5.6399
+2021-12-02 18:40:12,326 - mmdet - INFO - Epoch [184][50/60]	lr: 3.245e-03, eta: 1:46:21, time: 1.046, data_time: 0.861, memory: 6924, loss_cls: 1.0872, loss_bbox: 2.6461, loss_obj: 3.2672, loss: 7.0005
+2021-12-02 18:41:16,984 - mmdet - INFO - Epoch [185][50/60]	lr: 3.197e-03, eta: 1:45:25, time: 1.069, data_time: 0.887, memory: 6924, loss_cls: 0.9391, loss_bbox: 2.5379, loss_obj: 2.4793, loss: 5.9562
+2021-12-02 18:42:21,481 - mmdet - INFO - Epoch [186][50/60]	lr: 3.149e-03, eta: 1:44:30, time: 1.090, data_time: 0.877, memory: 6924, loss_cls: 0.9867, loss_bbox: 2.5546, loss_obj: 2.8755, loss: 6.4168
+2021-12-02 18:43:28,479 - mmdet - INFO - Epoch [187][50/60]	lr: 3.101e-03, eta: 1:43:36, time: 1.128, data_time: 0.902, memory: 6924, loss_cls: 0.9528, loss_bbox: 2.4572, loss_obj: 2.7940, loss: 6.2040
+2021-12-02 18:44:35,650 - mmdet - INFO - Epoch [188][50/60]	lr: 3.054e-03, eta: 1:42:42, time: 1.135, data_time: 0.865, memory: 6924, loss_cls: 1.0709, loss_bbox: 2.5996, loss_obj: 3.3668, loss: 7.0374
+2021-12-02 18:45:42,509 - mmdet - INFO - Epoch [189][50/60]	lr: 3.007e-03, eta: 1:41:48, time: 1.109, data_time: 0.870, memory: 6924, loss_cls: 1.0289, loss_bbox: 2.5306, loss_obj: 3.1073, loss: 6.6668
+2021-12-02 18:46:46,422 - mmdet - INFO - Epoch [190][50/60]	lr: 2.960e-03, eta: 1:40:52, time: 1.066, data_time: 0.878, memory: 6924, loss_cls: 0.9260, loss_bbox: 2.5096, loss_obj: 2.4011, loss: 5.8367
+2021-12-02 18:46:56,033 - mmdet - INFO - Saving checkpoint at 190 epochs
+2021-12-02 18:46:58,315 - mmdet - INFO - Evaluating bbox...
+2021-12-02 18:46:58,468 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.208
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.402
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.184
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.212
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.208
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.306
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.306
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.306
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.283
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.296
+
+2021-12-02 18:46:58,472 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 18:46:58,472 - mmdet - INFO - Epoch(val) [190][60]	bbox_mAP: 0.2080, bbox_mAP_50: 0.4020, bbox_mAP_75: 0.1840, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2120, bbox_mAP_l: 0.2080, bbox_mAP_copypaste: 0.208 0.402 0.184 -1.000 0.212 0.208
+2021-12-02 18:47:55,969 - mmdet - INFO - Epoch [191][50/60]	lr: 2.914e-03, eta: 1:39:58, time: 1.150, data_time: 0.933, memory: 6924, loss_cls: 0.9862, loss_bbox: 2.5126, loss_obj: 2.9409, loss: 6.4397
+2021-12-02 18:49:01,213 - mmdet - INFO - Epoch [192][50/60]	lr: 2.867e-03, eta: 1:39:04, time: 1.112, data_time: 0.911, memory: 6924, loss_cls: 0.9514, loss_bbox: 2.4479, loss_obj: 2.7438, loss: 6.1431
+2021-12-02 18:50:08,553 - mmdet - INFO - Epoch [193][50/60]	lr: 2.821e-03, eta: 1:38:10, time: 1.148, data_time: 0.930, memory: 6924, loss_cls: 0.9278, loss_bbox: 2.4110, loss_obj: 2.5899, loss: 5.9286
+2021-12-02 18:51:12,516 - mmdet - INFO - Epoch [194][50/60]	lr: 2.776e-03, eta: 1:37:15, time: 1.078, data_time: 0.809, memory: 6924, loss_cls: 1.0169, loss_bbox: 2.5292, loss_obj: 3.0504, loss: 6.5965
+2021-12-02 18:52:19,778 - mmdet - INFO - Epoch [195][50/60]	lr: 2.730e-03, eta: 1:36:20, time: 1.105, data_time: 0.868, memory: 6924, loss_cls: 0.9892, loss_bbox: 2.4728, loss_obj: 2.8329, loss: 6.2949
+2021-12-02 18:53:25,212 - mmdet - INFO - Epoch [196][50/60]	lr: 2.685e-03, eta: 1:35:25, time: 1.092, data_time: 0.854, memory: 6924, loss_cls: 0.9075, loss_bbox: 2.3829, loss_obj: 2.4642, loss: 5.7545
+2021-12-02 18:54:30,595 - mmdet - INFO - Epoch [197][50/60]	lr: 2.641e-03, eta: 1:34:29, time: 1.090, data_time: 0.886, memory: 6924, loss_cls: 0.9390, loss_bbox: 2.4291, loss_obj: 2.5944, loss: 5.9626
+2021-12-02 18:55:35,364 - mmdet - INFO - Epoch [198][50/60]	lr: 2.596e-03, eta: 1:33:34, time: 1.101, data_time: 0.833, memory: 6930, loss_cls: 0.9943, loss_bbox: 2.4792, loss_obj: 2.7952, loss: 6.2687
+2021-12-02 18:56:43,915 - mmdet - INFO - Epoch [199][50/60]	lr: 2.552e-03, eta: 1:32:41, time: 1.139, data_time: 0.911, memory: 6930, loss_cls: 0.9480, loss_bbox: 2.4205, loss_obj: 2.6542, loss: 6.0227
+2021-12-02 18:57:50,299 - mmdet - INFO - Epoch [200][50/60]	lr: 2.509e-03, eta: 1:31:46, time: 1.129, data_time: 0.942, memory: 6930, loss_cls: 0.9095, loss_bbox: 2.3838, loss_obj: 2.3776, loss: 5.6709
+2021-12-02 18:58:00,044 - mmdet - INFO - Saving checkpoint at 200 epochs
+2021-12-02 18:58:02,331 - mmdet - INFO - Evaluating bbox...
+2021-12-02 18:58:02,474 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.201
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.413
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.174
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.250
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.201
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.293
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.293
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.293
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.250
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.290
+
+2021-12-02 18:58:02,477 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 18:58:02,477 - mmdet - INFO - Epoch(val) [200][60]	bbox_mAP: 0.2010, bbox_mAP_50: 0.4130, bbox_mAP_75: 0.1740, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2500, bbox_mAP_l: 0.2010, bbox_mAP_copypaste: 0.201 0.413 0.174 -1.000 0.250 0.201
+2021-12-02 18:58:57,586 - mmdet - INFO - Epoch [201][50/60]	lr: 2.465e-03, eta: 1:30:51, time: 1.102, data_time: 0.863, memory: 6930, loss_cls: 0.9037, loss_bbox: 2.3890, loss_obj: 2.4670, loss: 5.7596
+2021-12-02 19:00:01,792 - mmdet - INFO - Epoch [202][50/60]	lr: 2.422e-03, eta: 1:29:56, time: 1.070, data_time: 0.885, memory: 6930, loss_cls: 1.0290, loss_bbox: 2.6093, loss_obj: 3.0910, loss: 6.7293
+2021-12-02 19:01:09,438 - mmdet - INFO - Epoch [203][50/60]	lr: 2.380e-03, eta: 1:29:01, time: 1.132, data_time: 0.861, memory: 6930, loss_cls: 0.9660, loss_bbox: 2.4468, loss_obj: 2.7493, loss: 6.1620
+2021-12-02 19:02:16,748 - mmdet - INFO - Epoch [204][50/60]	lr: 2.337e-03, eta: 1:28:07, time: 1.114, data_time: 0.872, memory: 6930, loss_cls: 0.8745, loss_bbox: 2.3217, loss_obj: 2.2618, loss: 5.4580
+2021-12-02 19:03:21,815 - mmdet - INFO - Epoch [205][50/60]	lr: 2.295e-03, eta: 1:27:12, time: 1.096, data_time: 0.896, memory: 6930, loss_cls: 0.8934, loss_bbox: 2.3727, loss_obj: 2.3442, loss: 5.6103
+2021-12-02 19:04:24,823 - mmdet - INFO - Epoch [206][50/60]	lr: 2.254e-03, eta: 1:26:16, time: 1.064, data_time: 0.881, memory: 6930, loss_cls: 1.0694, loss_bbox: 2.7619, loss_obj: 3.0689, loss: 6.9001
+2021-12-02 19:05:28,854 - mmdet - INFO - Epoch [207][50/60]	lr: 2.213e-03, eta: 1:25:21, time: 1.100, data_time: 0.839, memory: 6930, loss_cls: 1.0563, loss_bbox: 2.5893, loss_obj: 3.2702, loss: 6.9158
+2021-12-02 19:06:32,699 - mmdet - INFO - Epoch [208][50/60]	lr: 2.172e-03, eta: 1:24:25, time: 1.065, data_time: 0.883, memory: 6930, loss_cls: 1.0004, loss_bbox: 2.6492, loss_obj: 2.6863, loss: 6.3359
+2021-12-02 19:07:38,960 - mmdet - INFO - Epoch [209][50/60]	lr: 2.131e-03, eta: 1:23:31, time: 1.137, data_time: 0.922, memory: 6930, loss_cls: 0.9494, loss_bbox: 2.4342, loss_obj: 2.6674, loss: 6.0510
+2021-12-02 19:08:44,005 - mmdet - INFO - Epoch [210][50/60]	lr: 2.091e-03, eta: 1:22:36, time: 1.084, data_time: 0.881, memory: 6930, loss_cls: 0.8631, loss_bbox: 2.2979, loss_obj: 2.1845, loss: 5.3455
+2021-12-02 19:08:53,693 - mmdet - INFO - Saving checkpoint at 210 epochs
+2021-12-02 19:08:55,971 - mmdet - INFO - Evaluating bbox...
+2021-12-02 19:08:56,126 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.208
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.410
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.199
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.232
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.210
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.315
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.315
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.315
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.275
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.308
+
+2021-12-02 19:08:56,129 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 19:08:56,129 - mmdet - INFO - Epoch(val) [210][60]	bbox_mAP: 0.2080, bbox_mAP_50: 0.4100, bbox_mAP_75: 0.1990, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2320, bbox_mAP_l: 0.2100, bbox_mAP_copypaste: 0.208 0.410 0.199 -1.000 0.232 0.210
+2021-12-02 19:09:51,294 - mmdet - INFO - Epoch [211][50/60]	lr: 2.052e-03, eta: 1:21:41, time: 1.103, data_time: 0.831, memory: 6930, loss_cls: 0.9252, loss_bbox: 2.3974, loss_obj: 2.4521, loss: 5.7748
+2021-12-02 19:10:57,198 - mmdet - INFO - Epoch [212][50/60]	lr: 2.013e-03, eta: 1:20:46, time: 1.082, data_time: 0.901, memory: 6930, loss_cls: 0.9283, loss_bbox: 2.5124, loss_obj: 2.3486, loss: 5.7893
+2021-12-02 19:12:04,776 - mmdet - INFO - Epoch [213][50/60]	lr: 1.974e-03, eta: 1:19:52, time: 1.154, data_time: 0.940, memory: 6930, loss_cls: 0.9125, loss_bbox: 2.3574, loss_obj: 2.4171, loss: 5.6870
+2021-12-02 19:13:09,710 - mmdet - INFO - Epoch [214][50/60]	lr: 1.935e-03, eta: 1:18:57, time: 1.105, data_time: 0.843, memory: 6930, loss_cls: 0.9707, loss_bbox: 2.4604, loss_obj: 2.7768, loss: 6.2079
+2021-12-02 19:14:13,419 - mmdet - INFO - Epoch [215][50/60]	lr: 1.898e-03, eta: 1:18:01, time: 1.054, data_time: 0.875, memory: 6930, loss_cls: 0.9866, loss_bbox: 2.6287, loss_obj: 2.5997, loss: 6.2151
+2021-12-02 19:15:17,922 - mmdet - INFO - Epoch [216][50/60]	lr: 1.860e-03, eta: 1:17:06, time: 1.097, data_time: 0.827, memory: 6930, loss_cls: 0.9168, loss_bbox: 2.3745, loss_obj: 2.4738, loss: 5.7651
+2021-12-02 19:16:24,444 - mmdet - INFO - Epoch [217][50/60]	lr: 1.823e-03, eta: 1:16:11, time: 1.090, data_time: 0.898, memory: 6930, loss_cls: 0.9380, loss_bbox: 2.4693, loss_obj: 2.6318, loss: 6.0391
+2021-12-02 19:17:28,900 - mmdet - INFO - Epoch [218][50/60]	lr: 1.786e-03, eta: 1:15:16, time: 1.098, data_time: 0.837, memory: 6930, loss_cls: 0.9470, loss_bbox: 2.4114, loss_obj: 2.5271, loss: 5.8855
+2021-12-02 19:18:34,249 - mmdet - INFO - Epoch [219][50/60]	lr: 1.750e-03, eta: 1:14:21, time: 1.093, data_time: 0.883, memory: 6930, loss_cls: 0.9487, loss_bbox: 2.5001, loss_obj: 2.6413, loss: 6.0901
+2021-12-02 19:19:41,827 - mmdet - INFO - Epoch [220][50/60]	lr: 1.714e-03, eta: 1:13:27, time: 1.138, data_time: 0.951, memory: 6930, loss_cls: 0.8843, loss_bbox: 2.3499, loss_obj: 2.2759, loss: 5.5101
+2021-12-02 19:19:51,390 - mmdet - INFO - Saving checkpoint at 220 epochs
+2021-12-02 19:19:53,669 - mmdet - INFO - Evaluating bbox...
+2021-12-02 19:19:53,890 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.202
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.399
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.194
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.194
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.204
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.283
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.305
+
+2021-12-02 19:19:53,893 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 19:19:53,894 - mmdet - INFO - Epoch(val) [220][60]	bbox_mAP: 0.2020, bbox_mAP_50: 0.3990, bbox_mAP_75: 0.1940, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1940, bbox_mAP_l: 0.2040, bbox_mAP_copypaste: 0.202 0.399 0.194 -1.000 0.194 0.204
+2021-12-02 19:20:46,439 - mmdet - INFO - Epoch [221][50/60]	lr: 1.679e-03, eta: 1:12:31, time: 1.051, data_time: 0.851, memory: 6930, loss_cls: 0.9730, loss_bbox: 2.5654, loss_obj: 2.7412, loss: 6.2796
+2021-12-02 19:21:48,006 - mmdet - INFO - Epoch [222][50/60]	lr: 1.644e-03, eta: 1:11:35, time: 1.045, data_time: 0.848, memory: 6930, loss_cls: 0.9060, loss_bbox: 2.4434, loss_obj: 2.2859, loss: 5.6353
+2021-12-02 19:22:49,454 - mmdet - INFO - Epoch [223][50/60]	lr: 1.609e-03, eta: 1:10:39, time: 1.059, data_time: 0.876, memory: 6930, loss_cls: 0.9450, loss_bbox: 2.5292, loss_obj: 2.3218, loss: 5.7960
+2021-12-02 19:23:54,561 - mmdet - INFO - Epoch [224][50/60]	lr: 1.575e-03, eta: 1:09:44, time: 1.112, data_time: 0.851, memory: 6930, loss_cls: 0.9104, loss_bbox: 2.3931, loss_obj: 2.5182, loss: 5.8218
+2021-12-02 19:25:00,287 - mmdet - INFO - Epoch [225][50/60]	lr: 1.542e-03, eta: 1:08:50, time: 1.103, data_time: 0.836, memory: 6930, loss_cls: 0.8763, loss_bbox: 2.3058, loss_obj: 2.2056, loss: 5.3877
+2021-12-02 19:26:07,919 - mmdet - INFO - Epoch [226][50/60]	lr: 1.509e-03, eta: 1:07:55, time: 1.104, data_time: 0.914, memory: 6930, loss_cls: 0.8939, loss_bbox: 2.3652, loss_obj: 2.3023, loss: 5.5614
+2021-12-02 19:27:13,328 - mmdet - INFO - Epoch [227][50/60]	lr: 1.476e-03, eta: 1:07:00, time: 1.111, data_time: 0.847, memory: 6930, loss_cls: 0.8720, loss_bbox: 2.3077, loss_obj: 2.1951, loss: 5.3747
+2021-12-02 19:28:17,040 - mmdet - INFO - Epoch [228][50/60]	lr: 1.444e-03, eta: 1:06:05, time: 1.075, data_time: 0.891, memory: 6930, loss_cls: 0.9847, loss_bbox: 2.5092, loss_obj: 2.7626, loss: 6.2565
+2021-12-02 19:29:23,285 - mmdet - INFO - Epoch [229][50/60]	lr: 1.412e-03, eta: 1:05:10, time: 1.118, data_time: 0.879, memory: 6930, loss_cls: 0.8836, loss_bbox: 2.3214, loss_obj: 2.3388, loss: 5.5437
+2021-12-02 19:30:30,383 - mmdet - INFO - Epoch [230][50/60]	lr: 1.381e-03, eta: 1:04:15, time: 1.128, data_time: 0.938, memory: 6930, loss_cls: 0.8584, loss_bbox: 2.3234, loss_obj: 2.1444, loss: 5.3261
+2021-12-02 19:30:39,993 - mmdet - INFO - Saving checkpoint at 230 epochs
+2021-12-02 19:30:42,319 - mmdet - INFO - Evaluating bbox...
+2021-12-02 19:30:42,476 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.212
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.415
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.182
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.212
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.212
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.313
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.313
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.313
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.287
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.302
+
+2021-12-02 19:30:42,480 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 19:30:42,480 - mmdet - INFO - Epoch(val) [230][60]	bbox_mAP: 0.2120, bbox_mAP_50: 0.4150, bbox_mAP_75: 0.1820, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2120, bbox_mAP_l: 0.2120, bbox_mAP_copypaste: 0.212 0.415 0.182 -1.000 0.212 0.212
+2021-12-02 19:31:39,623 - mmdet - INFO - Epoch [231][50/60]	lr: 1.351e-03, eta: 1:03:21, time: 1.142, data_time: 0.927, memory: 6930, loss_cls: 0.8666, loss_bbox: 2.3103, loss_obj: 2.2430, loss: 5.4200
+2021-12-02 19:32:43,340 - mmdet - INFO - Epoch [232][50/60]	lr: 1.320e-03, eta: 1:02:26, time: 1.080, data_time: 0.870, memory: 6930, loss_cls: 0.9159, loss_bbox: 2.4445, loss_obj: 2.3938, loss: 5.7542
+2021-12-02 19:33:48,581 - mmdet - INFO - Epoch [233][50/60]	lr: 1.291e-03, eta: 1:01:31, time: 1.096, data_time: 0.827, memory: 6930, loss_cls: 0.8480, loss_bbox: 2.2518, loss_obj: 2.0975, loss: 5.1974
+2021-12-02 19:34:53,812 - mmdet - INFO - Epoch [234][50/60]	lr: 1.261e-03, eta: 1:00:35, time: 1.061, data_time: 0.860, memory: 6930, loss_cls: 0.9244, loss_bbox: 2.4856, loss_obj: 2.4189, loss: 5.8290
+2021-12-02 19:35:55,443 - mmdet - INFO - Epoch [235][50/60]	lr: 1.233e-03, eta: 0:59:40, time: 1.054, data_time: 0.856, memory: 6930, loss_cls: 0.8596, loss_bbox: 2.3482, loss_obj: 1.9726, loss: 5.1805
+2021-12-02 19:37:00,702 - mmdet - INFO - Epoch [236][50/60]	lr: 1.205e-03, eta: 0:58:45, time: 1.131, data_time: 0.947, memory: 6930, loss_cls: 0.8365, loss_bbox: 2.2509, loss_obj: 1.9597, loss: 5.0470
+2021-12-02 19:38:04,644 - mmdet - INFO - Epoch [237][50/60]	lr: 1.177e-03, eta: 0:57:50, time: 1.078, data_time: 0.896, memory: 6930, loss_cls: 0.8552, loss_bbox: 2.3916, loss_obj: 2.0248, loss: 5.2716
+2021-12-02 19:39:09,403 - mmdet - INFO - Epoch [238][50/60]	lr: 1.150e-03, eta: 0:56:55, time: 1.104, data_time: 0.902, memory: 6930, loss_cls: 0.8610, loss_bbox: 2.2873, loss_obj: 2.1672, loss: 5.3156
+2021-12-02 19:40:11,734 - mmdet - INFO - Epoch [239][50/60]	lr: 1.123e-03, eta: 0:56:00, time: 1.061, data_time: 0.875, memory: 6930, loss_cls: 0.9210, loss_bbox: 2.4403, loss_obj: 2.4267, loss: 5.7880
+2021-12-02 19:41:18,867 - mmdet - INFO - Epoch [240][50/60]	lr: 1.097e-03, eta: 0:55:05, time: 1.127, data_time: 0.939, memory: 6930, loss_cls: 0.8050, loss_bbox: 2.1819, loss_obj: 1.8103, loss: 4.7972
+2021-12-02 19:41:28,849 - mmdet - INFO - Saving checkpoint at 240 epochs
+2021-12-02 19:41:31,113 - mmdet - INFO - Evaluating bbox...
+2021-12-02 19:41:31,270 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.212
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.418
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.193
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.209
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.213
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.329
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.329
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.329
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.279
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.321
+
+2021-12-02 19:41:31,273 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 19:41:31,274 - mmdet - INFO - Epoch(val) [240][60]	bbox_mAP: 0.2120, bbox_mAP_50: 0.4180, bbox_mAP_75: 0.1930, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2090, bbox_mAP_l: 0.2130, bbox_mAP_copypaste: 0.212 0.418 0.193 -1.000 0.209 0.213
+2021-12-02 19:42:26,359 - mmdet - INFO - Epoch [241][50/60]	lr: 1.071e-03, eta: 0:54:10, time: 1.101, data_time: 0.840, memory: 6930, loss_cls: 0.8621, loss_bbox: 2.2810, loss_obj: 2.1318, loss: 5.2749
+2021-12-02 19:43:31,368 - mmdet - INFO - Epoch [242][50/60]	lr: 1.046e-03, eta: 0:53:15, time: 1.091, data_time: 0.902, memory: 6930, loss_cls: 0.8560, loss_bbox: 2.3409, loss_obj: 2.1039, loss: 5.3008
+2021-12-02 19:44:37,565 - mmdet - INFO - Epoch [243][50/60]	lr: 1.022e-03, eta: 0:52:21, time: 1.128, data_time: 0.900, memory: 6930, loss_cls: 0.8909, loss_bbox: 2.3600, loss_obj: 2.4079, loss: 5.6588
+2021-12-02 19:45:41,246 - mmdet - INFO - Epoch [244][50/60]	lr: 9.977e-04, eta: 0:51:25, time: 1.070, data_time: 0.894, memory: 6930, loss_cls: 0.9216, loss_bbox: 2.5262, loss_obj: 2.3131, loss: 5.7610
+2021-12-02 19:46:44,907 - mmdet - INFO - Epoch [245][50/60]	lr: 9.743e-04, eta: 0:50:30, time: 1.086, data_time: 0.873, memory: 6930, loss_cls: 0.8640, loss_bbox: 2.3671, loss_obj: 2.1705, loss: 5.4016
+2021-12-02 19:47:50,171 - mmdet - INFO - Epoch [246][50/60]	lr: 9.513e-04, eta: 0:49:35, time: 1.097, data_time: 0.906, memory: 6930, loss_cls: 0.8151, loss_bbox: 2.2484, loss_obj: 1.9253, loss: 4.9888
+2021-12-02 19:48:54,053 - mmdet - INFO - Epoch [247][50/60]	lr: 9.289e-04, eta: 0:48:40, time: 1.087, data_time: 0.818, memory: 6930, loss_cls: 0.8468, loss_bbox: 2.2236, loss_obj: 2.0240, loss: 5.0944
+2021-12-02 19:50:03,886 - mmdet - INFO - Epoch [248][50/60]	lr: 9.071e-04, eta: 0:47:46, time: 1.155, data_time: 0.941, memory: 6930, loss_cls: 0.8597, loss_bbox: 2.2606, loss_obj: 2.0806, loss: 5.2010
+2021-12-02 19:51:08,437 - mmdet - INFO - Epoch [249][50/60]	lr: 8.857e-04, eta: 0:46:51, time: 1.099, data_time: 0.829, memory: 6930, loss_cls: 0.7903, loss_bbox: 2.1403, loss_obj: 1.7789, loss: 4.7095
+2021-12-02 19:52:15,509 - mmdet - INFO - Epoch [250][50/60]	lr: 8.650e-04, eta: 0:45:56, time: 1.114, data_time: 0.924, memory: 6930, loss_cls: 0.8054, loss_bbox: 2.2128, loss_obj: 1.8420, loss: 4.8603
+2021-12-02 19:52:24,859 - mmdet - INFO - Saving checkpoint at 250 epochs
+2021-12-02 19:52:27,154 - mmdet - INFO - Evaluating bbox...
+2021-12-02 19:52:27,310 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.208
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.411
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.179
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.210
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.207
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.292
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.306
+
+2021-12-02 19:52:27,314 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 19:52:27,314 - mmdet - INFO - Epoch(val) [250][60]	bbox_mAP: 0.2080, bbox_mAP_50: 0.4110, bbox_mAP_75: 0.1790, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2100, bbox_mAP_l: 0.2070, bbox_mAP_copypaste: 0.208 0.411 0.179 -1.000 0.210 0.207
+2021-12-02 19:53:24,229 - mmdet - INFO - Epoch [251][50/60]	lr: 8.448e-04, eta: 0:45:02, time: 1.138, data_time: 0.952, memory: 6930, loss_cls: 0.7997, loss_bbox: 2.1593, loss_obj: 1.7212, loss: 4.6803
+2021-12-02 19:54:31,302 - mmdet - INFO - Epoch [252][50/60]	lr: 8.251e-04, eta: 0:44:07, time: 1.142, data_time: 0.929, memory: 6930, loss_cls: 0.8093, loss_bbox: 2.1740, loss_obj: 1.8177, loss: 4.8011
+2021-12-02 19:55:35,793 - mmdet - INFO - Epoch [253][50/60]	lr: 8.060e-04, eta: 0:43:12, time: 1.087, data_time: 0.885, memory: 6930, loss_cls: 0.8104, loss_bbox: 2.2064, loss_obj: 1.8869, loss: 4.9037
+2021-12-02 19:56:41,260 - mmdet - INFO - Epoch [254][50/60]	lr: 7.875e-04, eta: 0:42:17, time: 1.109, data_time: 0.839, memory: 6930, loss_cls: 0.7872, loss_bbox: 2.0949, loss_obj: 1.7215, loss: 4.6037
+2021-12-02 19:57:48,533 - mmdet - INFO - Epoch [255][50/60]	lr: 7.695e-04, eta: 0:41:22, time: 1.117, data_time: 0.879, memory: 6930, loss_cls: 0.8388, loss_bbox: 2.2228, loss_obj: 2.0005, loss: 5.0621
+2021-12-02 19:58:50,897 - mmdet - INFO - Epoch [256][50/60]	lr: 7.521e-04, eta: 0:40:27, time: 1.036, data_time: 0.838, memory: 6930, loss_cls: 0.8838, loss_bbox: 2.3794, loss_obj: 2.1226, loss: 5.3857
+2021-12-02 19:59:52,835 - mmdet - INFO - Epoch [257][50/60]	lr: 7.352e-04, eta: 0:39:31, time: 1.059, data_time: 0.877, memory: 6930, loss_cls: 0.8946, loss_bbox: 2.3658, loss_obj: 2.2607, loss: 5.5212
+2021-12-02 20:01:00,112 - mmdet - INFO - Epoch [258][50/60]	lr: 7.190e-04, eta: 0:38:37, time: 1.129, data_time: 0.899, memory: 6930, loss_cls: 0.8489, loss_bbox: 2.2742, loss_obj: 2.1642, loss: 5.2873
+2021-12-02 20:02:03,743 - mmdet - INFO - Epoch [259][50/60]	lr: 7.032e-04, eta: 0:37:42, time: 1.073, data_time: 0.855, memory: 6930, loss_cls: 0.8510, loss_bbox: 2.3079, loss_obj: 2.0044, loss: 5.1633
+2021-12-02 20:03:09,842 - mmdet - INFO - Epoch [260][50/60]	lr: 6.881e-04, eta: 0:36:47, time: 1.108, data_time: 0.839, memory: 6930, loss_cls: 0.7737, loss_bbox: 2.0922, loss_obj: 1.7605, loss: 4.6264
+2021-12-02 20:03:21,482 - mmdet - INFO - Saving checkpoint at 260 epochs
+2021-12-02 20:03:23,775 - mmdet - INFO - Evaluating bbox...
+2021-12-02 20:03:23,928 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.211
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.409
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.179
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.210
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.209
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.315
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.315
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.315
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.292
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.306
+
+2021-12-02 20:03:23,931 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 20:03:23,932 - mmdet - INFO - Epoch(val) [260][60]	bbox_mAP: 0.2110, bbox_mAP_50: 0.4090, bbox_mAP_75: 0.1790, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2100, bbox_mAP_l: 0.2090, bbox_mAP_copypaste: 0.211 0.409 0.179 -1.000 0.210 0.209
+2021-12-02 20:04:18,212 - mmdet - INFO - Epoch [261][50/60]	lr: 6.735e-04, eta: 0:35:52, time: 1.085, data_time: 0.814, memory: 6930, loss_cls: 0.7436, loss_bbox: 2.0194, loss_obj: 1.5684, loss: 4.3314
+2021-12-02 20:05:23,680 - mmdet - INFO - Epoch [262][50/60]	lr: 6.596e-04, eta: 0:34:57, time: 1.071, data_time: 0.873, memory: 6930, loss_cls: 0.8609, loss_bbox: 2.3246, loss_obj: 1.9467, loss: 5.1322
+2021-12-02 20:06:29,441 - mmdet - INFO - Epoch [263][50/60]	lr: 6.462e-04, eta: 0:34:02, time: 1.137, data_time: 0.905, memory: 6930, loss_cls: 0.8337, loss_bbox: 2.2382, loss_obj: 1.9944, loss: 5.0663
+2021-12-02 20:07:36,514 - mmdet - INFO - Epoch [264][50/60]	lr: 6.333e-04, eta: 0:33:07, time: 1.147, data_time: 0.930, memory: 6930, loss_cls: 0.7989, loss_bbox: 2.1447, loss_obj: 1.7699, loss: 4.7135
+2021-12-02 20:08:41,585 - mmdet - INFO - Epoch [265][50/60]	lr: 6.211e-04, eta: 0:32:12, time: 1.103, data_time: 0.842, memory: 6930, loss_cls: 0.8562, loss_bbox: 2.2464, loss_obj: 1.9886, loss: 5.0912
+2021-12-02 20:09:45,810 - mmdet - INFO - Epoch [266][50/60]	lr: 6.094e-04, eta: 0:31:17, time: 1.068, data_time: 0.885, memory: 6930, loss_cls: 0.8463, loss_bbox: 2.3784, loss_obj: 1.9592, loss: 5.1840
+2021-12-02 20:10:50,074 - mmdet - INFO - Epoch [267][50/60]	lr: 5.983e-04, eta: 0:30:22, time: 1.092, data_time: 0.830, memory: 6930, loss_cls: 0.8006, loss_bbox: 2.1629, loss_obj: 1.8309, loss: 4.7944
+2021-12-02 20:11:56,935 - mmdet - INFO - Epoch [268][50/60]	lr: 5.878e-04, eta: 0:29:27, time: 1.134, data_time: 0.921, memory: 6930, loss_cls: 0.7822, loss_bbox: 2.0981, loss_obj: 1.6937, loss: 4.5739
+2021-12-02 20:13:03,405 - mmdet - INFO - Epoch [269][50/60]	lr: 5.779e-04, eta: 0:28:33, time: 1.127, data_time: 0.939, memory: 6930, loss_cls: 0.7749, loss_bbox: 2.1297, loss_obj: 1.6412, loss: 4.5458
+2021-12-02 20:14:07,771 - mmdet - INFO - Epoch [270][50/60]	lr: 5.686e-04, eta: 0:27:38, time: 1.095, data_time: 0.905, memory: 6930, loss_cls: 0.7870, loss_bbox: 2.1689, loss_obj: 1.7197, loss: 4.6756
+2021-12-02 20:14:17,486 - mmdet - INFO - Saving checkpoint at 270 epochs
+2021-12-02 20:14:19,819 - mmdet - INFO - Evaluating bbox...
+2021-12-02 20:14:19,965 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.213
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.410
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.185
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.206
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.213
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.314
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.283
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.308
+
+2021-12-02 20:14:19,969 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 20:14:19,969 - mmdet - INFO - Epoch(val) [270][60]	bbox_mAP: 0.2130, bbox_mAP_50: 0.4100, bbox_mAP_75: 0.1850, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2060, bbox_mAP_l: 0.2130, bbox_mAP_copypaste: 0.213 0.410 0.185 -1.000 0.206 0.213
+2021-12-02 20:15:15,327 - mmdet - INFO - Epoch [271][50/60]	lr: 5.599e-04, eta: 0:26:43, time: 1.107, data_time: 0.839, memory: 6930, loss_cls: 0.7463, loss_bbox: 2.0132, loss_obj: 1.5807, loss: 4.3402
+2021-12-02 20:16:23,083 - mmdet - INFO - Epoch [272][50/60]	lr: 5.517e-04, eta: 0:25:48, time: 1.117, data_time: 0.873, memory: 6930, loss_cls: 0.8227, loss_bbox: 2.1792, loss_obj: 1.8815, loss: 4.8834
+2021-12-02 20:17:31,242 - mmdet - INFO - Epoch [273][50/60]	lr: 5.442e-04, eta: 0:24:53, time: 1.154, data_time: 0.937, memory: 6930, loss_cls: 0.7514, loss_bbox: 2.0375, loss_obj: 1.5473, loss: 4.3362
+2021-12-02 20:18:36,039 - mmdet - INFO - Epoch [274][50/60]	lr: 5.372e-04, eta: 0:23:58, time: 1.097, data_time: 0.857, memory: 6930, loss_cls: 0.7832, loss_bbox: 2.0984, loss_obj: 1.6886, loss: 4.5702
+2021-12-02 20:19:42,399 - mmdet - INFO - Epoch [275][50/60]	lr: 5.309e-04, eta: 0:23:03, time: 1.103, data_time: 0.909, memory: 6930, loss_cls: 0.7848, loss_bbox: 2.1458, loss_obj: 1.6231, loss: 4.5536
+2021-12-02 20:20:44,222 - mmdet - INFO - Epoch [276][50/60]	lr: 5.251e-04, eta: 0:22:08, time: 1.048, data_time: 0.849, memory: 6930, loss_cls: 0.8364, loss_bbox: 2.2791, loss_obj: 1.8271, loss: 4.9425
+2021-12-02 20:21:45,409 - mmdet - INFO - Epoch [277][50/60]	lr: 5.199e-04, eta: 0:21:13, time: 1.056, data_time: 0.859, memory: 6930, loss_cls: 0.7976, loss_bbox: 2.1941, loss_obj: 1.6518, loss: 4.6435
+2021-12-02 20:22:49,924 - mmdet - INFO - Epoch [278][50/60]	lr: 5.153e-04, eta: 0:20:18, time: 1.113, data_time: 0.912, memory: 6930, loss_cls: 0.7983, loss_bbox: 2.1659, loss_obj: 1.7969, loss: 4.7611
+2021-12-02 20:23:54,327 - mmdet - INFO - Epoch [279][50/60]	lr: 5.114e-04, eta: 0:19:23, time: 1.100, data_time: 0.836, memory: 6930, loss_cls: 0.8109, loss_bbox: 2.1432, loss_obj: 1.8369, loss: 4.7910
+2021-12-02 20:24:57,396 - mmdet - INFO - Epoch [280][50/60]	lr: 5.080e-04, eta: 0:18:28, time: 1.048, data_time: 0.846, memory: 6930, loss_cls: 0.7911, loss_bbox: 2.1731, loss_obj: 1.6265, loss: 4.5907
+2021-12-02 20:25:06,717 - mmdet - INFO - Saving checkpoint at 280 epochs
+2021-12-02 20:25:08,984 - mmdet - INFO - Evaluating bbox...
+2021-12-02 20:25:09,192 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.216
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.412
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.184
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.185
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.216
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.320
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.320
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.320
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.271
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.314
+
+2021-12-02 20:25:09,195 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 20:25:09,195 - mmdet - INFO - Epoch(val) [280][60]	bbox_mAP: 0.2160, bbox_mAP_50: 0.4120, bbox_mAP_75: 0.1840, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1850, bbox_mAP_l: 0.2160, bbox_mAP_copypaste: 0.216 0.412 0.184 -1.000 0.185 0.216
+2021-12-02 20:26:05,776 - mmdet - INFO - Epoch [281][50/60]	lr: 5.052e-04, eta: 0:17:33, time: 1.131, data_time: 0.905, memory: 6930, loss_cls: 0.8137, loss_bbox: 2.1854, loss_obj: 1.8637, loss: 4.8628
+2021-12-02 20:27:10,555 - mmdet - INFO - Epoch [282][50/60]	lr: 5.030e-04, eta: 0:16:38, time: 1.096, data_time: 0.839, memory: 6930, loss_cls: 0.7813, loss_bbox: 2.0978, loss_obj: 1.6855, loss: 4.5645
+2021-12-02 20:28:18,123 - mmdet - INFO - Epoch [283][50/60]	lr: 5.014e-04, eta: 0:15:43, time: 1.138, data_time: 0.912, memory: 6930, loss_cls: 0.7801, loss_bbox: 2.1266, loss_obj: 1.7016, loss: 4.6083
+2021-12-02 20:29:22,644 - mmdet - INFO - Epoch [284][50/60]	lr: 5.004e-04, eta: 0:14:48, time: 1.107, data_time: 0.842, memory: 6930, loss_cls: 0.7603, loss_bbox: 2.0530, loss_obj: 1.6071, loss: 4.4204
+2021-12-02 20:29:33,229 - mmdet - INFO - No mosaic and mixup aug now!
+2021-12-02 20:29:33,229 - mmdet - INFO - Add additional L1 loss now!
+2021-12-02 20:29:56,685 - mmdet - INFO - Epoch [285][50/60]	lr: 5.000e-04, eta: 0:13:52, time: 0.469, data_time: 0.187, memory: 6930, loss_cls: 0.8500, loss_bbox: 2.4768, loss_obj: 3.1807, loss_l1: 1.9963, loss: 8.5038
+2021-12-02 20:30:22,257 - mmdet - INFO - Epoch [286][50/60]	lr: 5.000e-04, eta: 0:12:55, time: 0.436, data_time: 0.231, memory: 6930, loss_cls: 0.7524, loss_bbox: 2.2581, loss_obj: 2.4184, loss_l1: 1.5017, loss: 6.9306
+2021-12-02 20:30:49,321 - mmdet - INFO - Epoch [287][50/60]	lr: 5.000e-04, eta: 0:11:59, time: 0.469, data_time: 0.220, memory: 6930, loss_cls: 0.7031, loss_bbox: 2.1917, loss_obj: 2.2998, loss_l1: 1.5653, loss: 6.7598
+2021-12-02 20:31:15,557 - mmdet - INFO - Epoch [288][50/60]	lr: 5.000e-04, eta: 0:11:03, time: 0.460, data_time: 0.204, memory: 6930, loss_cls: 0.7119, loss_bbox: 2.2082, loss_obj: 2.2050, loss_l1: 1.5982, loss: 6.7233
+2021-12-02 20:31:40,035 - mmdet - INFO - Epoch [289][50/60]	lr: 5.000e-04, eta: 0:10:07, time: 0.416, data_time: 0.200, memory: 6930, loss_cls: 0.6963, loss_bbox: 2.1577, loss_obj: 1.9984, loss_l1: 1.4180, loss: 6.2705
+2021-12-02 20:32:06,065 - mmdet - INFO - Epoch [290][50/60]	lr: 5.000e-04, eta: 0:09:11, time: 0.431, data_time: 0.218, memory: 6930, loss_cls: 0.6766, loss_bbox: 2.0994, loss_obj: 2.0215, loss_l1: 1.5234, loss: 6.3209
+2021-12-02 20:32:10,346 - mmdet - INFO - Saving checkpoint at 290 epochs
+2021-12-02 20:32:12,593 - mmdet - INFO - Evaluating bbox...
+2021-12-02 20:32:12,731 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.226
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.430
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.179
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.171
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.226
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.331
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.331
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.331
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.283
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.325
+
+2021-12-02 20:32:12,734 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 20:32:12,734 - mmdet - INFO - Epoch(val) [290][60]	bbox_mAP: 0.2260, bbox_mAP_50: 0.4300, bbox_mAP_75: 0.1790, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.1710, bbox_mAP_l: 0.2260, bbox_mAP_copypaste: 0.226 0.430 0.179 -1.000 0.171 0.226
+2021-12-02 20:32:35,388 - mmdet - INFO - Epoch [291][50/60]	lr: 5.000e-04, eta: 0:08:16, time: 0.453, data_time: 0.217, memory: 6930, loss_cls: 0.6482, loss_bbox: 2.0646, loss_obj: 1.8845, loss_l1: 1.4529, loss: 6.0501
+2021-12-02 20:33:01,640 - mmdet - INFO - Epoch [292][50/60]	lr: 5.000e-04, eta: 0:07:21, time: 0.437, data_time: 0.203, memory: 6930, loss_cls: 0.6850, loss_bbox: 2.1305, loss_obj: 1.7977, loss_l1: 1.3830, loss: 5.9962
+2021-12-02 20:33:27,283 - mmdet - INFO - Epoch [293][50/60]	lr: 5.000e-04, eta: 0:06:26, time: 0.449, data_time: 0.238, memory: 6930, loss_cls: 0.6366, loss_bbox: 1.9959, loss_obj: 1.6279, loss_l1: 1.3339, loss: 5.5943
+2021-12-02 20:33:51,570 - mmdet - INFO - Epoch [294][50/60]	lr: 5.000e-04, eta: 0:05:32, time: 0.429, data_time: 0.221, memory: 6930, loss_cls: 0.6237, loss_bbox: 1.9695, loss_obj: 1.4724, loss_l1: 1.1836, loss: 5.2492
+2021-12-02 20:34:18,650 - mmdet - INFO - Epoch [295][50/60]	lr: 5.000e-04, eta: 0:04:37, time: 0.463, data_time: 0.181, memory: 6930, loss_cls: 0.6961, loss_bbox: 2.1734, loss_obj: 2.0605, loss_l1: 1.6489, loss: 6.5790
+2021-12-02 20:34:45,467 - mmdet - INFO - Epoch [296][50/60]	lr: 5.000e-04, eta: 0:03:43, time: 0.456, data_time: 0.210, memory: 6930, loss_cls: 0.6228, loss_bbox: 1.9265, loss_obj: 1.4887, loss_l1: 1.3078, loss: 5.3458
+2021-12-02 20:35:09,709 - mmdet - INFO - Epoch [297][50/60]	lr: 5.000e-04, eta: 0:02:49, time: 0.406, data_time: 0.194, memory: 6930, loss_cls: 0.7073, loss_bbox: 2.2398, loss_obj: 1.9135, loss_l1: 1.3824, loss: 6.2429
+2021-12-02 20:35:37,922 - mmdet - INFO - Epoch [298][50/60]	lr: 5.000e-04, eta: 0:01:55, time: 0.488, data_time: 0.209, memory: 6930, loss_cls: 0.6694, loss_bbox: 2.0916, loss_obj: 1.8501, loss_l1: 1.4350, loss: 6.0460
+2021-12-02 20:36:03,570 - mmdet - INFO - Epoch [299][50/60]	lr: 5.000e-04, eta: 0:01:02, time: 0.436, data_time: 0.192, memory: 6930, loss_cls: 0.6165, loss_bbox: 1.9505, loss_obj: 1.5815, loss_l1: 1.3695, loss: 5.5180
+2021-12-02 20:36:31,760 - mmdet - INFO - Epoch [300][50/60]	lr: 5.000e-04, eta: 0:00:08, time: 0.464, data_time: 0.207, memory: 6930, loss_cls: 0.6092, loss_bbox: 1.9315, loss_obj: 1.5407, loss_l1: 1.3486, loss: 5.4299
+2021-12-02 20:36:35,442 - mmdet - INFO - Saving checkpoint at 300 epochs
+2021-12-02 20:36:37,733 - mmdet - INFO - Evaluating bbox...
+2021-12-02 20:36:37,863 - mmdet - INFO - 
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.237
+Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=1000 ] = 0.454
+Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=1000 ] = 0.204
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.216
+Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.236
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.344
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=300 ] = 0.344
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=1000 ] = 0.344
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=1000 ] = -1.000
+Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=1000 ] = 0.279
+Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=1000 ] = 0.340
+
+2021-12-02 20:36:37,866 - mmdet - INFO - Exp name: yolox_s_8x8_300e_coco.py
+2021-12-02 20:36:37,867 - mmdet - INFO - Epoch(val) [300][60]	bbox_mAP: 0.2370, bbox_mAP_50: 0.4540, bbox_mAP_75: 0.2040, bbox_mAP_s: -1.0000, bbox_mAP_m: 0.2160, bbox_mAP_l: 0.2360, bbox_mAP_copypaste: 0.237 0.454 0.204 -1.000 0.216 0.236
