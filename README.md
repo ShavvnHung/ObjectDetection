@@ -11,7 +11,7 @@ An simple object detection task to detect 10 different creatures. There are 690 
 
 Run on RTX3090
 
-| Model | Epochs | mAP | mAP~50~ | mAP~75~|
+| Model | Epochs | mAP | mAP<sub>50</sub> | mAP~75~|
 | -------- | ------- | -------- | -------- | -------- |
 | YOLOv3  | 273    | 0.43 | 0.768 | 0.461 |
 | YOLOX   | 300    | 0.343| 0.646 | 0.308 |
