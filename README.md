@@ -4,7 +4,7 @@
 
 An simple object detection task to detect 10 different creatures. There are 690 images in my dataset. and I split train, test, validation dataset with ratio 80%/10%/10%, respectively.
 
-![](https://i.imgur.com/VDIh2DD.png){:height="50%" width="50%"}
+![](https://i.imgur.com/VDIh2DD.png =300*200){:height="50%" width="50%"}
 
 
 ## Results and Models
