@@ -13,8 +13,8 @@ Run on RTX3090
 
 | Model | Epochs | mAP | mAP<sub>50</sub> | mAP<sub>75</sub>| Download |
 | -------- | ------- | -------- | -------- | -------- | -------- |
-| YOLOv3  | 273    | 0.43 | 0.768 | 0.461 | [link](https://github.com/open-mmlab/mmdetection) |
-| YOLOX   | 300    | 0.343| 0.646 | 0.308 | [link](https://github.com/open-mmlab/mmdetection) | 
+| YOLOv3  | 273    | 0.43 | 0.768 | 0.461 | [model](https://github.com/open-mmlab/mmdetection) |
+| YOLOX   | 300    | 0.343| 0.646 | 0.308 | [model](https://github.com/open-mmlab/mmdetection) | 
 
 ## Usage 
 
