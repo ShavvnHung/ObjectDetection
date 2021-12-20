@@ -11,4 +11,4 @@ model = init_detector(config, checkpoint, device='cuda:0')
 with open(str(sys.argv[3]), 'r') as f1:
     for img in f1.read().splitlines():
         result = inference_detector(model, img)
-        model.show_result(img, result, out_file='val/' + img.split('/')[-1])
+        model.show_result(img, result, out_file='detect_result/' + img.split('/')[-1])
