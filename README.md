@@ -2,7 +2,7 @@
 
 ## Introduction
 
-An simple object detection task to detect 10 different creatures. There are 690 images in my dataset. and I split train, test, validation dataset with ratio 80%/10%/10%, respectively.
+An object detection task using mmdetection library to detect 10 different creatures. There are 690 images in my dataset. and I split train, test, validation dataset with ratio 80%/10%/10%, respectively.
 
 ![](https://i.imgur.com/VDIh2DD.png)
 
@@ -11,10 +11,10 @@ An simple object detection task to detect 10 different creatures. There are 690 
 
 Run on RTX3090
 
-| Model | Epochs | mAP | mAP~50~ | mAP~75~|
-| -------- | ------- | -------- | -------- | -------- |
-| YOLOv3  | 273    | 0.43 | 0.768 | 0.461 |
-| YOLOX   | 300    | 0.343| 0.646 | 0.308 |
+| Model | Epochs | mAP | mAP<sub>50</sub> | mAP<sub>75</sub>| Download |
+| -------- | ------- | -------- | -------- | -------- | -------- |
+| YOLOv3  | 273    | 0.43 | 0.768 | 0.461 | [model](https://drive.google.com/file/d/1Da9aGdzgiyShodR0z4vodKQnMV_90JmW/view?usp=sharing) |
+| YOLOX   | 300    | 0.343| 0.646 | 0.308 | [model](https://drive.google.com/file/d/1LoBTWpd5U1S381BvIFlt4ovKsSfpTECz/view?usp=sharing) | 
 
 ## Usage 
 
@@ -24,7 +24,7 @@ will output the detection result. The detection result of my own test dataset is
 
 ## Running
 
-``$ python inference.py yolov3_model/yolov3_d53_mstrain-608_273e_coco.py yolov3_model/epoch_273.pth test_image_list``
+``$ python inference.py yolov3_model/yolov3_d53_mstrain-608_273e_coco.py yolov3_model/epoch_273.pth test_image_list.txt``
 
 ## Reference
 
