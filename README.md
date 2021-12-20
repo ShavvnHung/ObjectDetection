@@ -24,6 +24,7 @@ will output the detection result. The detection result of my own test dataset is
 
 ## Running
 
+``$ pip install -r requiremnts.txt``
 ``$ python inference.py yolov3_model/yolov3_d53_mstrain-608_273e_coco.py yolov3_model/epoch_273.pth test_image_list.txt``
 
 ## Reference
